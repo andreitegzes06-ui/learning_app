@@ -2,7 +2,6 @@ package com.studymode.ui;
 
 import com.studymode.application.service.ProfileService;
 import com.studymode.application.port.DistractionBlocker;
-import com.studymode.application.port.ClassroomCatalog;
 import com.studymode.application.port.StudyDataTransfer;
 import com.studymode.ui.controller.ClassroomController;
 import com.studymode.ui.controller.DataTransferController;
@@ -11,6 +10,9 @@ import com.studymode.ui.controller.StudyHistoryController;
 import com.studymode.ui.controller.DashboardController;
 import com.studymode.application.service.FocusSessionService;
 import com.studymode.application.service.StudyStatisticsService;
+import com.studymode.application.service.StudyOrganizationService;
+import com.studymode.ui.controller.GoalController;
+import com.studymode.ui.controller.WorkspaceController;
 import com.studymode.domain.profile.UserProfile;
 import com.studymode.persistence.config.StartupConfiguration;
 import com.studymode.persistence.config.StartupConfigurationLoader;
@@ -38,6 +40,8 @@ public final class AppShell extends BorderPane implements AutoCloseable {
     private final DashboardController dashboardController;
     private final StudyHistoryController historyController;
     private final ClassroomController classroomController;
+    private final GoalController goalController;
+    private final WorkspaceController workspaceController;
     private final DataTransferController dataTransferController;
     private final Label profileCaption = text("", "muted");
     private Optional<UserProfile> profile;
@@ -45,14 +49,17 @@ public final class AppShell extends BorderPane implements AutoCloseable {
 
     public AppShell(ProfileService service, ExecutorService io, Optional<UserProfile> profile,
                     StartupConfiguration config, StartupConfigurationLoader configurationLoader,
-                    DistractionBlocker blocker, ClassroomCatalog classroomCatalog, StudyDataTransfer dataTransfer,
-                    FocusSessionService focusSessions, StudyStatisticsService statistics) {
+                    DistractionBlocker blocker, StudyDataTransfer dataTransfer,
+                    FocusSessionService focusSessions, StudyStatisticsService statistics,
+                    StudyOrganizationService organization, java.util.function.Consumer<String> openResource) {
         this.profile = profile; this.config = config; this.configurationLoader = configurationLoader; this.io = io;
         this.blocker = blocker;
         dashboardController = new DashboardController(statistics,service,io);
         historyController = new StudyHistoryController(statistics,service,io);
         focusController = new FocusSessionController(focusSessions,io,config.demoMode(),this::refreshSessionViews,() -> navigate(NavigationPage.SETTINGS));
-        classroomController = new ClassroomController(classroomCatalog, io);
+        classroomController = new ClassroomController(organization, io, openResource);
+        goalController = new GoalController(organization,focusSessions,io,() -> navigate(NavigationPage.FOCUS));
+        workspaceController = new WorkspaceController(organization,focusSessions,io,() -> navigate(NavigationPage.FOCUS),openResource);
         profileController = new ProfileController(service, io, profile, saved -> {
             this.profile = Optional.of(saved); updateProfileCaption();
         });
@@ -90,6 +97,8 @@ public final class AppShell extends BorderPane implements AutoCloseable {
             case DASHBOARD -> dashboard();
             case SETTINGS -> settings();
             case CLASSROOMS -> { classroomController.refresh(); yield classroomController.view(); }
+            case WORKSPACES -> { workspaceController.refresh(); yield workspaceController.view(); }
+            case GOALS -> { goalController.refresh(); yield goalController.view(); }
             case FOCUS -> { focusController.refresh(); yield focusController.view(); }
             case HISTORY -> { historyController.refresh(); yield historyController.view(); }
             default -> new MilestoneInfoView(page);

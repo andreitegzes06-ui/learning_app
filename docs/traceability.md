@@ -1,8 +1,22 @@
 # Requirements-to-implementation checklist
 
-Status on 15 November 2026: focus workflow implemented following M1/M2 and the JSON correction. `[x]` means verified for the stated scope; `[ ]` or partial means remaining work is pending. Historical sections retain their original counts/scope. Current evidence: [focus verification](verification/focus-workflow.md), [focus contract](focus-workflow.md), [actual-code UML](uml-implemented.puml).
+Status on 15 November 2026: M3 organization workflows implemented following the focus engine, M1/M2 and JSON correction. `[x]` means verified for the stated scope; `[ ]` or partial means remaining work is pending. Historical sections retain their original counts/scope. Current evidence: [focus verification](verification/focus-workflow.md), [focus contract](focus-workflow.md), [actual-code UML](uml-implemented.puml).
 
-## Current focus milestone acceptance
+## Current M3 organization acceptance
+
+- [x] A: classroom CRUD, editable description/color/notes/resources, real task checklist, safe deletion and subject time/history.
+- [x] B: workspace CRUD/select, saved focus/break defaults, classroom/resource/blocklist/shortcut selections; Start uses existing engine.
+- [x] C: goal CRUD and classroom assignment; real linked completed-time progress for current day/week; goal-linked sessions.
+- [x] D: existing models/ports/adapters reused; List<StudySession> and Set<BlockedApplication> drive implemented behavior; actual UML updated.
+- [x] E: validated names/durations/targets/URLs/paths/duplicates and deleted references; errors surface without FX-thread database work.
+- [x] F: CRUD/reopen, workspace Start, class history, progress/boundaries, invalid inputs and referenced deletion integration tests.
+- [x] Schema 4 preserves schema-3 facts; strict JSON format 3 reads legacy formats 1/2.
+- [x] Full clean build and 748 tests pass, including actual-window organization workflow and real 10-second timer.
+- [x] Scope stops here: no Windows termination, reward engine or subsequent milestone.
+
+See [M3 organization guide/evidence](organization-m3.md). Historical milestone counts below retain their original scope.
+
+## Prior focus milestone acceptance
 
 - [x] R1: working Start/Pause/Resume/Finish/Stop, custom duration, 25/50-minute presets, readable countdown and progress.
 - [x] R2: IDLE/RUNNING/PAUSED/COMPLETED/INTERRUPTED transitions; existing ACTIVE persistence reused.
@@ -16,7 +30,7 @@ Status on 15 November 2026: focus workflow implemented following M1/M2 and the J
 - [x] R10: explicit demo/testing mode permits real short sessions; real 10-second test saves exactly 10 seconds, never the standard preset duration.
 - [x] Full build: 679 tests, zero failures/errors/skips including opt-in GUI and real-time test. Strict JSON type regression suite expanded for format 2.
 - [x] Actual UML and launch/demo documentation updated. No Windows termination or rewards implemented.
-- [ ] Future: break cycles, history paging/filtering, detailed charts, goal editor/progress, workspace integration, Windows blocking and rewards.
+- [ ] Future after M3: break cycles, history paging/filtering, detailed charts, Windows blocking and rewards. Goal editor/progress and workspace integration are now implemented.
 
 ## Post-audit JSON validation correction
 
@@ -80,31 +94,31 @@ The historical M0 commit was never created. The first M1 source commit also incl
 | T2 | JavaFX UI and CSS; Windows primary platform | AppShell, shared CSS | M1, M8 | Windows launch, packaged launch and visual smoke | Partial: M1 actual Windows launch; M8 packaging pending |
 | T3 | SQLite local persistence; JUnit 5 | JDBC adapters, JUnit suite | M1 onward | Temp-DB/restart tests; test report | [x] foundation; extend with features |
 | F1 | Persistent local user profile | UserProfile, ProfileService, SqliteUserProfileStore | M1 | SqliteFoundationTest and JavaFxSmokeTest; actual app restart | [x] |
-| F2 | Study timer, focus/break cycles, immediate Stop | FocusCycle, FocusSessionService | M3 | Deterministic transition/pause/stop/suspend tests and UI check | [ ] |
+| F2 | Study timer and immediate Stop; break cycles future | FocusSessionService | Prior focus | Deterministic/real-time/UI tests | Partial: timer complete, automatic breaks pending |
 | F3 | User-selected Windows application blocking | WindowsDistractionBlocker | M5 | Safe fixture terminated; excluded/failed targets accurately reported | [ ] |
-| F4 | Custom subjects/courses as classrooms | ClassroomCatalog/SqliteClassroomCatalog, ClassroomController | M2 | Subject CRUD/reopen tested; confirmed deletion follows relationship rules | [x] basic subject CRUD; resource editor remains future |
-| F5 | Educational resource links including Google Classroom, no Google auth | StudyResource, ClassroomCatalog | M2 storage; later workflow | Resources persist and validate; no auth integration | Partial: interactive link editing/launch pending |
-| F6 | Configurable workspaces: classroom/durations/resources/blocklist | FocusWorkspaceStore/SqliteFocusWorkspaceStore | M2, M3, M5 | Aggregate CRUD, relationship rollback and JSON round trip pass | Partial: storage complete; editor/session integration pending |
-| F7 | Goals and tasks | StudyPlanStore/SqliteStudyPlanStore | M2 storage; M4 workflow | CRUD/completion facts persist; optional references clear on deletion | Partial: progress/workflow UI pending |
-| F8 | History and statistics | StudySessionLedger, StudyStatisticsService | M3, M4 | Correct filters/totals/paging; no-break accounting | [ ] |
+| F4 | Complete classroom workflows | Classroom, ClassroomController, StudyOrganizationService | M3 organization | CRUD/color/notes/tasks/history and restart tests | [x] requested scope |
+| F5 | Educational links including Google Classroom | StudyResource, ClassroomController, HostServices | M3 organization | Add/edit/remove, URL validation, explicit open action | [x] no Google authentication |
+| F6 | Configurable workspaces | FocusWorkspace, WorkspaceController, existing store/engine | M3 organization | CRUD/reopen and real engine Start | [x] settings/integration; Windows enforcement remains M5 |
+| F7 | Goals and tasks | StudyGoal, StudyTask, GoalController, StudyOrganizationService | M3 organization | CRUD, task completion and linked period progress | [x] requested scope |
+| F8 | History and statistics | StudySessionLedger, StudyStatisticsService, StudyOrganizationService | Focus/M3 | Real totals, subject history, zone-aware goal progress | Partial: implemented summaries/history; charts/paging future |
 | F9 | XP, achievements, levels, streaks | RewardPolicy, RewardService, RewardStore | M6 | Idempotence and calendar-boundary tests; real UI awards | [ ] |
-| F10 | Local export/import | StudyDataTransfer/JsonStudyDataTransfer, StudyDataArchive/SqliteStudyDataArchive, DataTransferController | M2 (brought forward) | Complete round trip, preview/backup, strict validation and rollback tests | [x] format 1 replacement; no merge |
+| F10 | Local export/import | Existing transfer/archive adapters | M2/M3 | Format 3 round trip, legacy 1/2, strict checks and rollback | [x] replacement; no merge |
 | F11 | Multiple startup configurations | StartupConfigurationLoader, properties presets/CLI | M1, M7 | StartupConfigurationTest; two config sources and precedence/errors | Partial: files/CLI work; named presets M7 |
 
 ## Grading evidence
 
 | ID | Requirement | Planned concrete evidence | Milestone | Status |
 | --- | --- | --- | --- | --- |
-| G1 | At least 4 meaningful application-specific classes | UserProfile, ProfileService, SqliteUserProfileStore, AppShell and other real application/domain types; 35 source types | M1 | [x] |
-| G2 | At least 2 implemented interfaces | Three actual ports/adapters: UserProfileStore, StudySessionLedger, DistractionBlocker; concrete persistence/simulation tests | M1; Windows adapter M5 | [x] foundation |
-| G3 | At least 2 genuine collections | Set<BlockedApplication> for workspace/simulation selections; List<StudySession> for durable ordered ledger reads at startup; immutability/deduplication tests | M1 | [x] foundation; history UI M3 |
-| G4 | Accurate UML class relationships | Actual-code PlantUML and rendered SVG: 55 top-level and four nested types, concrete implementations/dependencies | M1-M8 | [x] through M2; keep current |
-| G5 | Read and write data to files | Actual UTF-8 properties load/save and SQLite DB; portable JSON remains M7 | M1, M7 | [x] file I/O foundation |
+| G1 | At least 4 application-specific classes | Classroom, FocusWorkspace, StudyGoal, StudyTask, StudySession and their working services/controllers | Current | [x] |
+| G2 | At least 2 implemented interfaces | ClassroomCatalog/SqliteClassroomCatalog, FocusWorkspaceStore/SqliteFocusWorkspaceStore, StudySessionLedger/SqliteStudySessionLedger and other real ports | Current | [x] |
+| G3 | At least 2 genuine collections | List<StudySession> drives history/progress; Set<BlockedApplication> drives persisted workspace selections/deduplication | Current | [x] |
+| G4 | Accurate UML | Actual PlantUML/SVG: 72 top-level files and seven named nested types; real dependencies | Current M3 | [x] |
+| G5 | Read/write application files | Actual SQLite reopen, UTF-8 properties and versioned JSON transfer | Current | [x] |
 | G6 | Configuration and/or startup arguments | Validated properties and CLI flags exercised by StartupConfigurationTest; presets remain later | M1, M7 | [x] foundation |
 | G7 | At least 3 standard exceptions handled | NumberFormatException in config, IOException in file/config/startup, SQLException in JDBC; tested error paths. Also URI/path/security exceptions | M1 | [x] |
-| G8 | At least 2 useful custom exceptions | StudyDataException for persistence/migration/conflicts; FocusModeException for duplicate simulation start; both thrown and tested. DataImportException remains M7 | M1, M7 | [x] two foundation exceptions |
-| G9 | Complete input validation | Architecture validation matrix applied to forms, services, config and import; boundary/error tests | Each feature, audit M8 | [ ] |
-| G10 | Functioning presentation-ready application | Packaged standard-user Windows run, complete demonstration script and user guide | M8 | [ ] |
+| G8 | At least 2 useful custom exceptions | StudyDataException for storage/conflicts, FocusModeException for invalid live commands/shortcuts, DataImportException for rejected imports | Current | [x] |
+| G9 | Validate all current user input | UI feedback plus domain/service/import validation; invalid types/ranges/URLs/paths/references and rollback tests | Each feature | [x] implemented inputs; recheck future features |
+| G10 | Working classroom presentation path | Profile → classroom/link/task → goal → workspace → focus → history/progress → restart | Current/M8 | Functional Maven demo verified automatically; packaging/manual DPI acceptance remains M8 |
 
 ## UI, safety and delivery
 

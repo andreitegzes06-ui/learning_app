@@ -7,7 +7,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public record FocusWorkspace(UUID id, String name, UUID classroomId, FocusPreferences preferences,
-                             Set<UUID> resourceIds, Set<BlockedApplication> blocklist) {
+                             Set<UUID> resourceIds, Set<BlockedApplication> blocklist, Set<BlockedApplication> shortcuts) {
+    public FocusWorkspace(UUID id, String name, UUID classroomId, FocusPreferences preferences,
+                          Set<UUID> resourceIds, Set<BlockedApplication> blocklist) {
+        this(id, name, classroomId, preferences, resourceIds, blocklist, Set.of());
+    }
     public FocusWorkspace {
         Validation.required(id, "Workspace ID");
         name = Validation.text(name, "Workspace name", 100);
@@ -15,6 +19,9 @@ public record FocusWorkspace(UUID id, String name, UUID classroomId, FocusPrefer
         Validation.required(preferences, "Focus preferences");
         resourceIds = Set.copyOf(Validation.required(resourceIds, "Resource IDs"));
         blocklist = Set.copyOf(Validation.required(blocklist, "Blocklist"));
+        shortcuts = Set.copyOf(Validation.required(shortcuts, "Study application shortcuts"));
+        if (shortcuts.stream().anyMatch(blocklist::contains))
+            throw new IllegalArgumentException("A study shortcut cannot also be in the workspace blocklist.");
     }
 
     public void validateAgainst(Classroom classroom) {

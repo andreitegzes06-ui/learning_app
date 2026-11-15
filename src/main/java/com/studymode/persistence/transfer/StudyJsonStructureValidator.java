@@ -22,16 +22,16 @@ final class StudyJsonStructureValidator {
     private static final Map<Class<?>, Set<String>> NULLABLE = Map.of(
             StudySession.class, Set.of("endedAt"),
             StudyTask.class, Set.of("classroomId", "goalId", "dueDate", "completedAt"),
-            Classroom.class, Set.of("description"), SessionContext.class, Set.of("classroomId", "goalId"));
+            Classroom.class, Set.of("description"), com.studymode.domain.planning.StudyGoal.class, Set.of("classroomId"), SessionContext.class, Set.of("classroomId", "goalId"));
 
     void validate(JsonNode root) {
         JsonNode version = root == null ? null : root.path("formatVersion");
-        boolean legacy = version != null && version.isIntegralNumber() && version.canConvertToInt() && version.intValue() == 1;
-        validateValue(root, StudyDataSnapshot.class, "$", false, new HashMap<>(), legacy);
+        int format = version != null && version.isIntegralNumber() && version.canConvertToInt() ? version.intValue() : 3;
+        validateValue(root, StudyDataSnapshot.class, "$", false, new HashMap<>(), format);
     }
 
     private void validateValue(JsonNode node, Type type, String path, boolean nullable,
-                               Map<Class<?>, Map<String, RecordComponent>> records, boolean legacy) {
+                               Map<Class<?>, Map<String, RecordComponent>> records, int format) {
         if (node == null || node.isMissingNode()) fail(path, "required property is missing");
         if (node.isNull()) {
             if (nullable) return;
@@ -40,7 +40,7 @@ final class StudyJsonStructureValidator {
         if (type instanceof ParameterizedType list && list.getRawType() == List.class) {
             require(node.isArray(), path, "an array", node);
             for (int i = 0; i < node.size(); i++) {
-                validateValue(node.get(i), list.getActualTypeArguments()[0], path + "[" + i + "]", false, records, legacy);
+                validateValue(node.get(i), list.getActualTypeArguments()[0], path + "[" + i + "]", false, records, format);
             }
             return;
         }
@@ -51,7 +51,8 @@ final class StudyJsonStructureValidator {
             Map<String, RecordComponent> fields = records.computeIfAbsent(target, record -> {
                 Map<String, RecordComponent> components = new LinkedHashMap<>();
                 for (RecordComponent component : record.getRecordComponents()) {
-                    if (legacy && record == StudySession.class && Set.of("context", "checkpointAt").contains(component.getName())) continue;
+                    if (format == 1 && record == StudySession.class && Set.of("context", "checkpointAt").contains(component.getName())) continue;
+                    if (format < 3 && ((record == Classroom.class && Set.of("color","notes").contains(component.getName())) || (record == com.studymode.domain.planning.StudyGoal.class && component.getName().equals("classroomId")) || (record == StudyDataSnapshot.WorkspaceSelection.class && component.getName().equals("shortcuts")))) continue;
                     components.put(component.getName(), component);
                 }
                 return components;
@@ -63,7 +64,7 @@ final class StudyJsonStructureValidator {
             }
             for (RecordComponent field : fields.values()) {
                 validateValue(node.get(field.getName()), field.getGenericType(), path + "." + field.getName(),
-                        NULLABLE.getOrDefault(target, Set.of()).contains(field.getName()), records, legacy);
+                        NULLABLE.getOrDefault(target, Set.of()).contains(field.getName()), records, format);
             }
         } else if (target == int.class) {
             require(node.isIntegralNumber() && node.canConvertToInt(), path, "a 32-bit JSON integer", node);

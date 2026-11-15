@@ -26,7 +26,7 @@ class JsonImportTypeValidationTest {
     private byte[] databaseBefore;
     private Path databaseFile;
     private static final Set<String> OPTIONAL_NULLS = Set.of("/classrooms/0/description", "/tasks/0/classroomId",
-            "/tasks/0/goalId", "/tasks/0/dueDate", "/tasks/0/completedAt", "/sessions/0/context/classroomId", "/sessions/0/context/goalId");
+            "/tasks/0/goalId", "/tasks/0/dueDate", "/tasks/0/completedAt", "/sessions/0/context/classroomId", "/sessions/0/context/goalId", "/goals/0/classroomId");
 
     @BeforeEach void setup() throws Exception {
         databaseFile = root.resolve("data/study.db");
@@ -155,7 +155,10 @@ class JsonImportTypeValidationTest {
         return error;
     }
     private JsonNode withOptionalValues() {
-        JsonNode full = exported.deepCopy(); ((ObjectNode) full.at("/tasks/0")).put("completedAt", StudyDataFixture.NOW.toString());
+        JsonNode full = exported.deepCopy();
+        ((ArrayNode)full.at("/workspaces/0/shortcuts")).addObject().put("displayName","Study editor").put("executablePath",root.resolve("editor.exe").toString());
+        ((ObjectNode) full.at("/tasks/0")).put("completedAt", StudyDataFixture.NOW.toString());
+        ((ObjectNode) full.at("/goals/0")).put("classroomId", full.at("/classrooms/0/id").textValue());
         ObjectNode context = (ObjectNode) full.at("/sessions/0/context");
         context.put("classroomId", full.at("/classrooms/0/id").textValue()).put("classroomName", "Saved classroom");
         context.put("goalId", full.at("/goals/0/id").textValue()).put("goalName", "Saved goal");

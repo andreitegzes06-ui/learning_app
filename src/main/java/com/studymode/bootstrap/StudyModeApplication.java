@@ -59,8 +59,11 @@ public final class StudyModeApplication extends Application {
                     if (!stopping) {
                         stage.setTitle(config.demoMode() ? "Study Mode — Demo / Test" : "Study Mode");
                         shell = new AppShell(profiles, io, profile, config, configurationLoader, blocker,
-                                new SqliteClassroomCatalog(database), new com.studymode.persistence.transfer.JsonStudyDataTransfer(
-                                new SqliteStudyDataArchive(database, Clock.systemUTC()), config.dataDirectory()),focusSessions,new StudyStatisticsService(ledger,Clock.systemUTC()));
+                                new com.studymode.persistence.transfer.JsonStudyDataTransfer(
+                                new SqliteStudyDataArchive(database, Clock.systemUTC()), config.dataDirectory()),focusSessions,new StudyStatisticsService(ledger,Clock.systemUTC()),
+                                new com.studymode.application.service.StudyOrganizationService(new SqliteClassroomCatalog(database),new SqliteFocusWorkspaceStore(database),
+                                        new SqliteStudyPlanStore(database),new SqliteUserProfileStore(database),ledger,new SqliteBlockedApplicationCatalog(database),Clock.systemUTC()),
+                                getHostServices()::showDocument);
                         showScene(stage,shell,config.windowWidth(),config.windowHeight());
                         stage.setOnCloseRequest(event -> { event.consume(); shell.requestClose(Platform::exit); });
                     }

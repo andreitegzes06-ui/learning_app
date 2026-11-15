@@ -1,5 +1,9 @@
 # Application architecture (planned)
 
+## Current M3 organization amendment
+
+StudyOrganizationService coordinates the existing ClassroomCatalog, FocusWorkspaceStore, StudyPlanStore, UserProfileStore, StudySessionLedger and BlockedApplicationCatalog ports. ClassroomController now edits resources, notes/color and tasks and displays subject history. WorkspaceController and GoalController implement the existing domains without replacement abstractions. StudyEditorActions shares the FX/background handoff; StudyApplicationLauncher opens explicitly chosen study shortcuts without a shell or elevation. Schema 4 and JSON format 3 add metadata with legacy defaults. See [current M3 contract and evidence](organization-m3.md). Historical sections below retain the original planned scope; current implementation is shown by the actual UML.
+
 ## Implemented focus workflow amendment
 
 The current user request replaces the original M3 cycle scope with single focus sessions, history and real dashboard totals. `FocusSessionService` orchestrates the existing ledger/profile/classroom/plan ports using injected `Clock` and monotonic `LongSupplier`. `StudyStatisticsService` derives summaries from committed facts. `FocusState` describes UI lifecycle; existing persisted `SessionStatus.ACTIVE` means RUNNING. `SessionContext` captures optional classroom/goal references and labels, planned seconds and explicit demo provenance. JavaFX controllers use the shared background executor; the timer scheduler submits bounded ticks and never performs JDBC on the FX thread.

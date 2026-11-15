@@ -9,10 +9,13 @@ import java.util.function.Function;
 public final class SnapshotValidator {
     public void validate(StudyDataSnapshot data) {
         try {
-            if (data.formatVersion() != 1 && data.formatVersion() != 2) reject("Unsupported JSON format version: " + data.formatVersion());
+            if (data.formatVersion() < 1 || data.formatVersion() > 3) reject("Unsupported JSON format version: " + data.formatVersion());
             if (data.recordCount() > 100_000) reject("Import exceeds the 100,000-record limit.");
             if (data.profiles().size() > 1) reject("Only one local profile is supported per data directory.");
             Set<UUID> profiles = unique(data.profiles(), p -> p.id(), "profile");
+            unique(data.classrooms(), c -> c.name().toLowerCase(Locale.ROOT), "classroom name");
+            unique(data.workspaces(), w -> w.name().strip().toLowerCase(Locale.ROOT), "workspace name");
+            unique(data.goals(), g -> g.profileId()+":"+g.text().toLowerCase(Locale.ROOT), "goal name");
             unique(data.sessions(), s -> s.id(), "session"); unique(data.classrooms(), c -> c.id(), "classroom");
             unique(data.goals(), g -> g.id(), "goal"); unique(data.tasks(), t -> t.id(), "task");
             unique(data.workspaces(), w -> w.id(), "workspace"); unique(data.achievements(), a -> a.code(), "achievement");
@@ -26,9 +29,14 @@ public final class SnapshotValidator {
                 reference(profiles, session.profileId(), "session profile");
                 if (session.context().classroomId() != null) reference(classrooms, session.context().classroomId(), "session classroom");
                 if (session.context().goalId() != null) reference(goals, session.context().goalId(), "session goal");
+                if (session.context().goalId()!=null) {
+                    var goal=data.goals().stream().filter(g -> g.id().equals(session.context().goalId())).findFirst().orElseThrow();
+                    if (!goal.profileId().equals(session.profileId()) || (goal.classroomId()!=null && !goal.classroomId().equals(session.context().classroomId())))
+                        reject("Session goal must belong to its profile and assigned classroom.");
+                }
                 if (!session.finished() && !unfinished.add(session.profileId())) reject("A profile has more than one unfinished session.");
             }
-            data.goals().forEach(g -> reference(profiles, g.profileId(), "goal profile"));
+            data.goals().forEach(g -> { reference(profiles, g.profileId(), "goal profile"); if (g.classroomId()!=null) reference(classrooms,g.classroomId(),"goal classroom"); });
             data.tasks().forEach(t -> {
                 reference(profiles, t.profileId(), "task profile");
                 if (t.classroomId() != null) reference(classrooms, t.classroomId(), "task classroom");
@@ -44,6 +52,7 @@ public final class SnapshotValidator {
             for (var workspace : data.workspaces()) {
                 unique(workspace.resourceIds(), Function.identity(), "workspace resource selection");
                 unique(workspace.blockedPaths(), StudyDataSnapshot::pathKey, "workspace application selection");
+                unique(workspace.shortcuts(), a -> StudyDataSnapshot.pathKey(a.executablePath()), "workspace shortcut");
                 reference(classrooms, workspace.classroomId(), "workspace classroom");
                 workspace.toModel(apps).validateAgainst(classes.get(workspace.classroomId()));
             }

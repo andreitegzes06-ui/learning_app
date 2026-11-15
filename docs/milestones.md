@@ -28,7 +28,7 @@ The user's M2 request supersedes the initial classroom/workspace-only slice: aut
 
 Checks: full entity round trip/reopen, M1 migration preservation, migration failure rollback, reference constraints/delete effects, invalid SQL/data, strict bounded JSON parsing, complete export/import, backup failure, injected mid-import SQL failure, immutable sessions, profile/navigation regression and actual classroom save/error feedback. Full resource-link/workspace workflow editors and archive UI are not included in this persistence-only scope; track them as future workflow work.
 
-## M3 — Complete focus session workflow (user-amended scope, implemented)
+## Prior focus workflow (user-amended scope, implemented before current M3)
 
 Reuse StudySession, StudySessionLedger/SqliteStudySessionLedger and the existing ports. Implement FocusSessionService with deterministic monotonic timing, Start/Pause/Resume/Finish/Stop, optional classroom/goal context, durable checkpoints/recovery, History and real Dashboard totals. Explicit short demo mode records actual seconds. See [current contract](focus-workflow.md) and [verification](verification/focus-workflow.md).
 
@@ -36,9 +36,13 @@ Checks: valid/invalid transitions, fractions and paused time, duplicate preventi
 
 The original plan's focus/break cycles, paging/date filters and active blocker simulation integration are deferred to separately authorized work. This milestone does not implement Windows enforcement or rewards. M4 remains future scope except the basic Dashboard summaries explicitly brought forward by the current request.
 
-## M4 — Tasks, goals and useful statistics
+## Current M3 — Classrooms, workspaces and goals (user-requested scope)
 
-Implement planning models/stores/services, CRUD and task completion, daily/weekly goal progress, dashboard cards and History statistics/charts using committed sessions. Show totals by day/classroom, completed/interrupted counts and genuine empty states.
+Complete classroom notes/color/resources/tasks/history, workspace settings/shortcuts and real timer Start, and classroom-assigned goals with real linked-period progress. Preserve storage and strict imports. Implemented and verified by 748 tests; see [M3 contract/evidence](organization-m3.md). Do not start the following milestone automatically.
+
+## M4 — Remaining planning and statistics work
+
+Basic planning CRUD/task completion, daily/weekly linked goal progress and Dashboard summaries are complete through the user-amended M3. Future work may add advanced scheduling and History statistics/charts using committed sessions. Show totals by day/classroom, completed/interrupted counts and genuine empty states.
 
 Checks: goals across day/week/zone boundaries, task due dates and completion persistence, period filters, independent aggregate SQL comparisons and zero-data behaviour. Smoke adding/completing tasks and recording study that advances a goal. All previous timer/blocker simulation tests remain passing.
 

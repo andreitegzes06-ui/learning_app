@@ -26,6 +26,7 @@ public final class FocusSessionController implements AutoCloseable {
     private final Label countdown = text("", "countdown");
     private final Label state = text("IDLE", "status-badge");
     private final Label actual = text("Focused: 0h 00m 00s", "body-text");
+    private final Label intention = text("", "muted");
     private final Label feedback = text("", "feedback");
     private final ProgressBar progress = new ProgressBar(0);
     private final Button start = new Button("Start");
@@ -76,7 +77,7 @@ public final class FocusSessionController implements AutoCloseable {
         finish.setOnAction(event -> action(service::finish)); stop.setOnAction(event -> action(service::interrupt)); retry.setOnAction(event -> action(service::retrySave));
         reload.setOnAction(event -> refresh());
         Button settings = new Button("Open profile settings"); settings.setOnAction(event -> openSettings.run());
-        VBox timerCard = card(state,countdown,progress,actual,new FlowPane(10,10,start,pause,resume,finish,stop,retry),feedback,
+        VBox timerCard = card(state,intention,countdown,progress,actual,new FlowPane(10,10,start,pause,resume,finish,stop,retry),feedback,
                 text("Finish marks a completed session early and saves only actual focus. Stop records an interruption. A long sleep/update gap pauses without crediting that gap.","muted"));
         VBox settingsCard = card(text("Set your intention", "section-title"), text(demo ? "Focus duration in seconds (1–14400)" : "Focus duration in minutes (1–240)","field-label"),
                 duration,new FlowPane(10,10,preset25,preset50),text("Classroom (optional)","field-label"),classroom,text("Goal (optional)","field-label"),goal,new FlowPane(10,10,reload,settings));
@@ -96,8 +97,8 @@ public final class FocusSessionController implements AutoCloseable {
                 var options = service.options(); var snapshot = service.snapshot();
                 Platform.runLater(() -> {
                     if (closed) return; hasProfile = options.profile().isPresent();
-                    UUID selectedClassroom = classroom.getValue() == null ? null : classroom.getValue().id();
-                    UUID selectedGoal = goal.getValue() == null ? null : goal.getValue().id();
+                    UUID selectedClassroom = snapshot.active() ? snapshot.session().context().classroomId() : classroom.getValue() == null ? null : classroom.getValue().id();
+                    UUID selectedGoal = snapshot.active() ? snapshot.session().context().goalId() : goal.getValue() == null ? null : goal.getValue().id();
                     classroom.getItems().setAll(new Selection(null,"No classroom"));
                     options.classrooms().forEach(c -> classroom.getItems().add(new Selection(c.id(),c.name())));
                     goal.getItems().setAll(new Selection(null,"No goal")); options.goals().forEach(g -> goal.getItems().add(new Selection(g.id(),g.text())));
@@ -134,6 +135,9 @@ public final class FocusSessionController implements AutoCloseable {
     }
     private void render(FocusSessionSnapshot snapshot) {
         latest = snapshot; state.setText(snapshot.state().name() + (snapshot.savePending() ? " · NOT SAVED" : ""));
+        if (snapshot.active()) duration.setText(Long.toString(snapshot.session().context().plannedFocusSeconds() / (demo ? 1 : 60)));
+        intention.setText(snapshot.session()==null ? "" : snapshot.session().context().classroomName()
+                + (snapshot.session().context().goalId()==null ? "" : " · Goal: " + snapshot.session().context().goalName()));
         countdown.setText(snapshot.session() == null ? previewCountdown() : StudyTimeText.countdown(snapshot.remainingNanos()));
         progress.setProgress(snapshot.progress()); actual.setText("Focused: " + StudyTimeText.duration(snapshot.focusedNanos() / 1_000_000_000L));
         feedback.setText(!lastError.isEmpty() ? lastError : !hasProfile ? "Create a local profile in Settings before starting." : snapshot.notice());

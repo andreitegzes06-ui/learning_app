@@ -15,19 +15,21 @@ public final class SqliteClassroomCatalog implements ClassroomCatalog {
     @Override public Optional<Classroom> find(UUID id) { return findAll().stream().filter(c -> c.id().equals(id)).findFirst(); }
     @Override public void save(Classroom classroom) { database.transaction("save classroom and resources", c -> { write(c, classroom); return null; }); }
     @Override public boolean delete(UUID id) {
-        return database.transaction("delete classroom (check referencing workspaces and session history)", c -> update(c, "DELETE FROM classroom WHERE id=?", id) == 1);
+        return database.transaction("delete classroom (check referencing goals, workspaces and session history)", c -> update(c, "DELETE FROM classroom WHERE id=?", id) == 1);
     }
     static List<Classroom> readAll(Connection c) throws SQLException {
         return query(c, "SELECT * FROM classroom ORDER BY name,id", row -> {
             UUID id = UUID.fromString(row.getString("id"));
             var resources = query(c, "SELECT * FROM study_resource WHERE classroom_id=? ORDER BY position,id",
                     r -> new StudyResource(UUID.fromString(r.getString("id")), r.getString("title"), URI.create(r.getString("uri"))), id);
-            return new Classroom(id, row.getString("name"), row.getString("description"), resources);
+            return new Classroom(id, row.getString("name"), row.getString("description"), resources, row.getString("color"), row.getString("notes"));
         });
     }
     static void write(Connection c, Classroom classroom) throws SQLException {
-        update(c, "INSERT INTO classroom VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,description=excluded.description",
-                classroom.id(), classroom.name(), classroom.description());
+        if (!query(c, "SELECT id FROM classroom WHERE lower(trim(name))=lower(trim(?)) AND id<>?", r -> r.getString(1), classroom.name(), classroom.id()).isEmpty())
+            throw new StudyDataException("A classroom with this name already exists.");
+        update(c, "INSERT INTO classroom(id,name,description,color,notes) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,description=excluded.description,color=excluded.color,notes=excluded.notes",
+                classroom.id(), classroom.name(), classroom.description(), classroom.color(), classroom.notes());
         Set<UUID> retained = new HashSet<>();
         for (int i = 0; i < classroom.resources().size(); i++) {
             StudyResource resource = classroom.resources().get(i); retained.add(resource.id());

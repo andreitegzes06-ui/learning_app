@@ -36,7 +36,7 @@ class JavaFxSmokeTest {
             fx(() -> {
                 shell[0] = new AppShell(service, io, Optional.empty(), new StartupConfiguration(root, "dashboard", 1200, 800,true), new StartupConfigurationLoader(),
                         new com.studymode.platform.simulation.SimulatedDistractionBlocker(Clock.systemUTC()),
-                        new SqliteClassroomCatalog(database), new com.studymode.persistence.transfer.JsonStudyDataTransfer(new SqliteStudyDataArchive(database, Clock.systemUTC()), root),focus,new com.studymode.application.service.StudyStatisticsService(ledger,Clock.systemUTC()));
+                        new com.studymode.persistence.transfer.JsonStudyDataTransfer(new SqliteStudyDataArchive(database, Clock.systemUTC()), root),focus,new com.studymode.application.service.StudyStatisticsService(ledger,Clock.systemUTC()),new com.studymode.application.service.StudyOrganizationService(new SqliteClassroomCatalog(database),new SqliteFocusWorkspaceStore(database),new SqliteStudyPlanStore(database),new SqliteUserProfileStore(database),ledger,new SqliteBlockedApplicationCatalog(database),Clock.systemUTC()),url -> { } );
                 stage[0] = new Stage(); stage[0].setTitle("Study Mode — UI test");
                 Scene scene = new Scene(shell[0], 1200, 800);
                 scene.getStylesheets().add(getClass().getResource("/styles/dark.css").toExternalForm());
@@ -114,6 +114,53 @@ class JavaFxSmokeTest {
             io.submit(() -> { }).get(10, TimeUnit.SECONDS);
             fx(() -> assertTrue(shell[0].lookupAll(".feedback").stream().map(node -> ((Label) node).getText()).anyMatch(text -> text.contains("Classroom saved"))));
             assertEquals("UI classroom", new SqliteClassroomCatalog(new SqliteDatabase(root.resolve("ui.db"))).findAll().getFirst().name());
+            fx(() -> {
+                ((TextArea)shell[0].lookup("#classroom-notes")).setText("Exam revision");
+                ((TextField)shell[0].lookup("#resource-title")).setText("University course");
+                ((TextField)shell[0].lookup("#resource-url")).setText("https://classroom.google.com/c/java");
+                ((Button)shell[0].lookup("#save-resource")).fire();
+                ((Button)shell[0].lookup("#save-classroom")).fire();
+            });
+            drain(io);
+            assertEquals("Exam revision",new SqliteClassroomCatalog(database).findAll().getFirst().notes());
+            assertEquals(1,new SqliteClassroomCatalog(database).findAll().getFirst().resources().size());
+            fx(() -> { ((TextField)shell[0].lookup("#task-text")).setText("Revise interfaces"); ((Button)shell[0].lookup("#add-task")).fire(); });
+            drain(io);
+            fx(() -> { ((ListView<?>)shell[0].lookup("#classroom-tasks")).getSelectionModel().selectFirst(); ((Button)shell[0].lookup("#complete-task")).fire(); });
+            drain(io); assertTrue(new SqliteStudyPlanStore(database).tasks().getFirst().completed());
+            fx(() -> { shell[0].navigate(NavigationPage.GOALS); shell[0].applyCss(); shell[0].layout(); });
+            drain(io);
+            fx(() -> {
+                ((TextField)shell[0].lookup("#goal-name")).setText("Prepare Java exam");
+                ((TextField)shell[0].lookup("#goal-target")).setText("15");
+                ((ComboBox<?>)shell[0].lookup("#goal-classroom")).getSelectionModel().selectFirst();
+                ((Button)shell[0].lookup("#save-goal")).fire();
+            });
+            drain(io);
+            assertEquals(1,new SqliteStudyPlanStore(database).goals().size());
+            fx(() -> { shell[0].navigate(NavigationPage.WORKSPACES); shell[0].applyCss(); shell[0].layout(); });
+            drain(io);
+            fx(() -> {
+                ((TextField)shell[0].lookup("#workspace-name")).setText("Exam workspace");
+                ((TextField)shell[0].lookup("#workspace-focus")).setText("1");
+                ((ComboBox<?>)shell[0].lookup("#workspace-classroom")).getSelectionModel().selectFirst();
+                ((ListView<?>)shell[0].lookup("#workspace-resources")).getSelectionModel().selectFirst();
+                ((Button)shell[0].lookup("#save-workspace")).fire();
+            });
+            drain(io);
+            assertEquals(1,new SqliteFocusWorkspaceStore(database).findAll().size());
+            fx(() -> { ((ComboBox<?>)shell[0].lookup("#workspace-goal")).getSelectionModel().selectFirst(); ((Button)shell[0].lookup("#start-workspace")).fire(); });
+            drain(io);
+            assertEquals(NavigationPage.FOCUS,shell[0].currentPage());
+            assertEquals(60,focus.snapshot().session().context().plannedFocusSeconds());
+            fx(() -> { shell[0].applyCss(); shell[0].layout(); assertEquals("60",((TextField)shell[0].lookup("#focus-duration")).getText()); });
+            fakeNanos.addAndGet(4_000_000_000L); fx(() -> ((Button)shell[0].lookup("#focus-finish")).fire());
+            drain(io); assertEquals(4,focus.snapshot().session().activeFocusSeconds());
+            fx(() -> { shell[0].navigate(NavigationPage.GOALS); shell[0].applyCss(); shell[0].layout(); }); drain(io);
+            fx(() -> { ((ListView<?>)shell[0].lookup("#goal-list")).getSelectionModel().selectFirst(); assertTrue(((Label)shell[0].lookup("#goal-progress-text")).getText().contains("04s")); });
+            fx(() -> { shell[0].navigate(NavigationPage.CLASSROOMS); shell[0].applyCss(); shell[0].layout(); }); drain(io);
+            fx(() -> ((ListView<?>)shell[0].lookup("#classroom-list")).getSelectionModel().selectFirst()); drain(io);
+            fx(() -> assertEquals(1,((ListView<?>)shell[0].lookup("#classroom-history")).getItems().size()));
             try (var c = database.open(); var s = c.createStatement()) { s.execute("CREATE TRIGGER ui_failure BEFORE UPDATE ON classroom BEGIN SELECT RAISE(ABORT,'test failure'); END"); }
             fx(() -> {
                 ((TextField) shell[0].lookup("#classroom-name")).setText("Must not save"); ((Button) shell[0].lookup("#save-classroom")).fire();
@@ -136,6 +183,10 @@ class JavaFxSmokeTest {
             fx(() -> { if (shell[0] != null) shell[0].close(); if (stage[0] != null) stage[0].close(); });
             io.shutdown(); assertTrue(io.awaitTermination(10, TimeUnit.SECONDS)); Platform.exit();
         }
+    }
+    private static void drain(ExecutorService io) throws Exception {
+        io.submit(() -> { }).get(10,TimeUnit.SECONDS); fx(() -> { });
+        io.submit(() -> { }).get(10,TimeUnit.SECONDS); fx(() -> { });
     }
     private static void fx(Runnable action) throws Exception {
         FutureTask<Void> task = new FutureTask<>(action, null); Platform.runLater(task); task.get(15, TimeUnit.SECONDS);

@@ -17,7 +17,7 @@ public final class SqliteStudyDataArchive implements StudyDataArchive {
     public SqliteStudyDataArchive(SqliteDatabase database, Clock clock) { this.database = database; this.clock = clock; }
     @Override public StudyDataSnapshot snapshot() { return database.transaction("read a consistent study backup", this::read); }
     private StudyDataSnapshot read(Connection c) throws SQLException {
-        return new StudyDataSnapshot(2, clock.instant(), SqliteUserProfileStore.readAll(c), SqliteStudySessionLedger.readAll(c),
+        return new StudyDataSnapshot(3, clock.instant(), SqliteUserProfileStore.readAll(c), SqliteStudySessionLedger.readAll(c),
                 SqliteClassroomCatalog.readAll(c), SqliteBlockedApplicationCatalog.readAll(c).stream().map(StudyDataSnapshot.ApplicationSelection::from).toList(),
                 SqliteFocusWorkspaceStore.readAll(c).stream().map(StudyDataSnapshot.WorkspaceSelection::from).toList(),
                 SqliteStudyPlanStore.readGoals(c), SqliteStudyPlanStore.readTasks(c), SqliteAchievementStore.readDefinitions(c), SqliteAchievementStore.readAwards(c));
@@ -29,7 +29,7 @@ public final class SqliteStudyDataArchive implements StudyDataArchive {
             if (previous.sessions().stream().anyMatch(s -> !s.finished())) throw new DataImportException("Stop the active or paused session before importing data.");
             backupWriter.accept(previous);
             // Constant table names in dependency order; all user data is bound through prepared statements.
-            for (String table : List.of("workspace_resource", "workspace_application", "focus_workspace", "study_session", "study_task", "study_goal", "achievement_award", "achievement", "study_resource", "classroom", "blocked_application", "user_profile")) {
+            for (String table : List.of("workspace_shortcut", "workspace_resource", "workspace_application", "focus_workspace", "study_session", "study_task", "study_goal", "achievement_award", "achievement", "study_resource", "classroom", "blocked_application", "user_profile")) {
                 SqliteStatements.update(c, "DELETE FROM " + table);
             }
             for (var p : data.profiles()) SqliteUserProfileStore.write(c, p);

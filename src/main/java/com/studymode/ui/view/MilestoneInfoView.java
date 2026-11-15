@@ -9,10 +9,7 @@ public final class MilestoneInfoView extends VBox {
     public MilestoneInfoView(NavigationPage page) {
         super(22);
         String details = switch (page) {
-            case CLASSROOMS -> "Subjects and their educational links are stored locally. Interactive link editing and launching remain planned; Google sign-in is not part of Study Mode.";
-            case WORKSPACES -> "Workspace records, preferences, resource selections and application lists now persist in SQLite and JSON backups. The interactive workspace editor and focus integration remain planned; no environment starts automatically.";
             case BLOCKED -> "Real Windows enforcement arrives in milestone 5. Nothing is being blocked. The foundation includes a tested simulation adapter for development; it never touches operating-system processes.";
-            case GOALS -> "Daily and weekly study targets and study tasks arrive in milestone 4. Progress will be calculated from recorded study time.";
             case STATISTICS -> "Dashboard now shows recorded completed time and session count; History lists saved outcomes. Detailed charts, filters and goal progress remain planned for milestone 4.";
             case ACHIEVEMENTS -> "XP, levels, achievements, and study streak calculations arrive in milestone 6. Existing achievement definitions and award facts can already be stored and backed up. No rewards engine runs in this milestone.";
             default -> throw new IllegalArgumentException("This page has its own implemented view.");

@@ -1,5 +1,7 @@
 # Focus workflow contract
 
+This records the completed focus milestone baseline. The subsequent [M3 organization milestone](organization-m3.md) implements the goal/resource/workspace editors previously listed as pending here, and advances storage to schema 4 / JSON format 3.
+
 Implemented 15 November 2026. This user-requested milestone supersedes the original M3 cycle plan with single focus sessions, history and real dashboard totals. No Windows enforcement, blocker start, break timer or rewards engine is introduced.
 
 ## Lifecycle and services

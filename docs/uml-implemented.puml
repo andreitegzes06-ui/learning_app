@@ -1,5 +1,5 @@
 @startuml
-title Study Mode - implemented Focus Session workflow (15 November 2026)
+title Study Mode - implemented classrooms, workspaces and goals (15 November 2026)
 hide empty members
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
@@ -21,11 +21,14 @@ package "domain (models)" {
   }
   class Classroom <<record>> {
     resources : List<StudyResource>
+    color : String
+    notes : String
   }
   class FocusWorkspace <<record>> {
     classroomId : UUID
     resourceIds : Set<UUID>
     blocklist : Set<BlockedApplication>
+    shortcuts : Set<BlockedApplication>
     validateAgainst(classroom)
   }
   class FocusPreferences <<record>>
@@ -50,7 +53,11 @@ package "domain (models)" {
     COMPLETED
     INTERRUPTED
   }
-  class StudyGoal <<record>>
+  class StudyGoal <<record>> {
+    classroomId : UUID (optional)
+    targetMinutes : int
+    period : GoalPeriod
+  }
   enum GoalPeriod {
     DAILY
     WEEKLY
@@ -277,7 +284,7 @@ WorkspaceSelection ..> FocusWorkspace : reconstructs
 ApplicationSelection ..> BlockedApplication : reconstructs metadata
 AppShell --> ClassroomController
 AppShell --> DataTransferController
-ClassroomController --> ClassroomCatalog
+ClassroomController --> StudyOrganizationService
 DataTransferController --> StudyDataTransfer
 DataTransferController ..> StudyDataSnapshot
 StudyModeApplication ..> SqliteClassroomCatalog : constructs
@@ -350,9 +357,64 @@ StudyModeApplication ..> StudyStatisticsService
 StudyJsonStructureValidator ..> SessionContext
 JsonStudyDataTransfer ..> SessionContext : trusted legacy defaults
 
+package "Organization workflow" {
+  class StudyOrganizationService {
+    saveClassroom(classroom, creating)
+    addTask(classroomId, text)
+    completeTask(id)
+    saveWorkspace(workspace, creating)
+    startWorkspace(id, goalId, focus)
+    saveGoal(goal, creating)
+    classroomHistory(id) : List<StudySession>
+    classroomSeconds(id) : long
+    goalSeconds(id) : long
+  }
+  class GoalController
+  class WorkspaceController
+  class GoalOverview <<nested record>>
+  class WorkspaceOverview <<nested record>>
+  class StudyEditorActions <<UI utility>>
+  class StudyApplicationLauncher
+}
+StudyGoal ..> Classroom : optional UUID; database FK
+FocusWorkspace o-- BlockedApplication : study shortcuts; immutable set
+WorkspaceSelection o-- ApplicationSelection : portable shortcuts
+StudyOrganizationService --> ClassroomCatalog
+StudyOrganizationService --> FocusWorkspaceStore
+StudyOrganizationService --> StudyPlanStore
+StudyOrganizationService --> UserProfileStore
+StudyOrganizationService --> StudySessionLedger
+StudyOrganizationService --> BlockedApplicationCatalog
+StudyOrganizationService ..> FocusSessionService : starts existing timer
+StudyOrganizationService ..> StudySession : completed history and progress
+StudyOrganizationService ..> StudyTask
+StudyOrganizationService ..> FocusWorkspace
+StudyOrganizationService ..> StudyGoal
+AppShell --> GoalController
+AppShell --> WorkspaceController
+AppShell ..> StudyOrganizationService : wires controllers
+GoalController --> StudyOrganizationService
+GoalController ..> FocusSessionService
+WorkspaceController --> StudyOrganizationService
+WorkspaceController ..> FocusSessionService
+WorkspaceController ..> StudyApplicationLauncher : explicit shortcut action
+GoalController +-- GoalOverview
+WorkspaceController +-- WorkspaceOverview
+GoalOverview o-- StudyGoal
+GoalOverview o-- Classroom
+WorkspaceOverview o-- FocusWorkspace
+WorkspaceOverview o-- Classroom
+WorkspaceOverview o-- StudyGoal
+GoalController ..> StudyEditorActions
+WorkspaceController ..> StudyEditorActions
+ClassroomController ..> StudyEditorActions
+StudyApplicationLauncher ..> BlockedApplication
+StudyApplicationLauncher ..> FocusModeException
+StudyModeApplication ..> StudyOrganizationService : constructs
+
 note bottom of StudyModeApplication
   Domain models have no JavaFX/JDBC dependencies.
   I/O is serialized off the FX application thread.
-  Native Windows blocking and later workflows are absent.
+  Native Windows blocking, automatic breaks and rewards are absent.
 end note
 @enduml

@@ -22,13 +22,21 @@ public final class SqliteFocusWorkspaceStore implements FocusWorkspaceStore {
                     SELECT a.* FROM blocked_application a JOIN workspace_application w ON a.path_key=w.path_key
                     WHERE w.workspace_id=? ORDER BY a.path_key
                     """, r -> new BlockedApplication(r.getString("display_name"), Path.of(r.getString("executable_path"))), id);
+            var shortcuts = query(c, "SELECT * FROM workspace_shortcut WHERE workspace_id=? ORDER BY path_key",
+                    r -> new BlockedApplication(r.getString("display_name"), Path.of(r.getString("executable_path"))), id);
             return new FocusWorkspace(id, row.getString("name"), UUID.fromString(row.getString("classroom_id")),
-                    new FocusPreferences(row.getInt("focus_minutes"), row.getInt("short_break"), row.getInt("long_break"), row.getInt("long_break_every")), Set.copyOf(resources), Set.copyOf(apps));
+                    new FocusPreferences(row.getInt("focus_minutes"), row.getInt("short_break"), row.getInt("long_break"), row.getInt("long_break_every")), Set.copyOf(resources), Set.copyOf(apps), Set.copyOf(shortcuts));
         });
     }
     static void write(Connection c, FocusWorkspace workspace) throws SQLException {
+        if (!query(c, "SELECT id FROM focus_workspace WHERE lower(trim(name))=lower(trim(?)) AND id<>?", r -> r.getString(1), workspace.name(), workspace.id()).isEmpty())
+            throw new com.studymode.application.error.StudyDataException("A workspace with this name already exists.");
+        var classroom = SqliteClassroomCatalog.readAll(c).stream().filter(v -> v.id().equals(workspace.classroomId())).findFirst()
+                .orElseThrow(() -> new com.studymode.application.error.StudyDataException("The workspace classroom no longer exists."));
+        workspace.validateAgainst(classroom);
         update(c, "DELETE FROM workspace_resource WHERE workspace_id=?", workspace.id());
         update(c, "DELETE FROM workspace_application WHERE workspace_id=?", workspace.id());
+        update(c, "DELETE FROM workspace_shortcut WHERE workspace_id=?", workspace.id());
         var p = workspace.preferences();
         update(c, """
                 INSERT INTO focus_workspace VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
@@ -40,5 +48,7 @@ public final class SqliteFocusWorkspaceStore implements FocusWorkspaceStore {
             // Never create/modify application selections implicitly; the catalog owns their metadata.
             update(c, "INSERT INTO workspace_application VALUES (?,?)", workspace.id(), SqliteBlockedApplicationCatalog.key(app.executablePath()));
         }
+        for (BlockedApplication app : workspace.shortcuts()) update(c, "INSERT INTO workspace_shortcut VALUES (?,?,?,?)",
+                workspace.id(), SqliteBlockedApplicationCatalog.key(app.executablePath()), app.executablePath(), app.displayName());
     }
 }

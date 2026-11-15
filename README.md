@@ -1,6 +1,8 @@
 # Study Mode
 
-Java 21 / JavaFX Windows desktop application with SQLite persistence. The current milestone adds a working **focus timer, persistent History and real Dashboard totals**, reusing the existing profile, classroom, ledger and JSON infrastructure.
+Java 21 / JavaFX Windows desktop application with SQLite persistence. **Milestone 3 completes classrooms, workspaces and study goals**, preserving the working focus timer, History, Dashboard and validated JSON transfer.
+
+Classrooms include editable color, notes, educational links and task checklists, with subject-specific history/time. Workspaces save classroom, focus/break defaults, selected links, blocklist and study application shortcuts; Start configures the existing real timer. Goals support daily/weekly targets, optional classroom assignment and real linked-session progress. See [organization guide and verification](docs/organization-m3.md).
 
 ## Build and launch
 
@@ -46,7 +48,7 @@ Default writable root: %LOCALAPPDATA%\StudyMode. SQLite and settings.properties 
 
 Properties support start-page, demo, blocker and dimensions. Precedence: bundled defaults < data-directory settings < explicit config < CLI. Invalid/unknown/duplicate flags are rejected. Saving dimensions preserves other settings.
 
-Schema **3** migrates existing data additively. JSON exports use format **2**; strictly validated format **1** imports remain supported. Settings import replaces data only after validation, preview, confirmation and verified recovery backup. Failures roll back; active local sessions prevent import. Imported unfinished sessions become interrupted at their saved checkpoint. Exports require a new filename outside the data root. Backups contain private data without encryption.
+Schema **4** migrates existing data additively. JSON exports use format **3**; strictly validated formats **1 and 2** remain supported. Settings import replaces data only after validation, preview, confirmation and verified recovery backup. Failures roll back; active local sessions prevent import. Imported unfinished sessions become interrupted at their saved checkpoint. Exports require a new filename outside the data root. Backups contain private data without encryption.
 
 ## Timing and recovery
 
@@ -58,7 +60,7 @@ Dashboard totals/count use completed sessions, including only actual demo time. 
 
 ## Verification and structure
 
-Full build: **679 tests, zero failures, errors or skips**, including deterministic lifecycle/recovery/statistics, strict JSON regressions, migration/round-trip compatibility, a real JavaFX window workflow and a separate real 10-second monotonic test that persisted/reloaded exactly 10 seconds. Ordinary builds skip the two opt-in UI/real-time tests.
+Full build: **748 tests, zero failures, errors or skips**, including deterministic lifecycle/recovery/statistics, strict JSON regressions, migration/round-trip compatibility, a real JavaFX window workflow and a separate real 10-second monotonic test that persisted/reloaded exactly 10 seconds. Ordinary builds skip the two opt-in UI/real-time tests.
 
 | Package | Responsibility |
 | --- | --- |
@@ -75,4 +77,4 @@ See [focus contract](docs/focus-workflow.md), [verification](docs/verification/f
 
 ## Remaining scope
 
-Break cycles, charts/filtering/paged history, goal/task editors and progress, full resource/workspace editors and focus integration, Windows enforcement, rewards and named startup presets remain planned. Stored/imported goals can be selected; goal creation UI is pending. Self-contained Windows packaging and full DPI/accessibility acceptance remain future work. Launch through Maven.
+Break cycles, charts/filtering/paged history, advanced task scheduling, Windows enforcement, rewards and named startup presets remain planned. Workspace break preferences and blocklists are saved configuration; no automatic break cycle or process blocking runs. Self-contained Windows packaging and full DPI/accessibility acceptance remain future work. Launch through Maven.

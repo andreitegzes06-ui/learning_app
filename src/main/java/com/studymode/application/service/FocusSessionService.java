@@ -46,6 +46,8 @@ public final class FocusSessionService {
         var classroom = classroomId == null ? null : classrooms.find(classroomId).orElseThrow(() -> new FocusModeException("The selected classroom no longer exists. Reload the choices."));
         var goal = goalId == null ? null : plans.findGoal(goalId).orElseThrow(() -> new FocusModeException("The selected goal no longer exists. Reload the choices."));
         if (goal != null && !goal.profileId().equals(profile.id())) throw new FocusModeException("The selected goal belongs to another profile.");
+        if (goal != null && goal.classroomId()!=null && !goal.classroomId().equals(classroomId))
+            throw new FocusModeException("Select the classroom assigned to this goal before starting.");
         if (!ledger.findUnfinished().isEmpty()) throw new FocusModeException("An unfinished session already exists. Restart Study Mode to recover it safely.");
         Instant now = clock.instant();
         SessionContext context = new SessionContext(classroomId, classroom == null ? "" : classroom.name(),

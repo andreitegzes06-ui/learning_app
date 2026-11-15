@@ -1,6 +1,6 @@
 # Milestone 2 persistence contract
 
-Historical M2 contract: the current focus milestone adds schema 3 and JSON format 2, with strict legacy format 1 compatibility. Session classroom/goal references now restrict deletion, and imports clear sessions before referenced entities. See [current focus contract](focus-workflow.md). The schema 2 and format 1 descriptions below record the original M2 baseline.
+Current organization milestone: schema 4 / JSON format 3 adds classroom notes/color, optional goal classroom and workspace shortcuts. Formats 1/2 remain readable. See [M3 organization contract](organization-m3.md). Historical M2 contract: the current focus milestone adds schema 3 and JSON format 2, with strict legacy format 1 compatibility. Session classroom/goal references now restrict deletion, and imports clear sessions before referenced entities. See [current focus contract](focus-workflow.md). The schema 2 and format 1 descriptions below record the original M2 baseline.
 
 The user's M2 persistence request supersedes the original classroom/workspace-only M2 plan and brings JSON transfer forward from M7. No Windows blocker or reward engine is implemented. Existing domain models and singleton local-profile identity are preserved.
 

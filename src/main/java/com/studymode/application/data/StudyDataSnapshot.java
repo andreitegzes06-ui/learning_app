@@ -26,16 +26,21 @@ public record StudyDataSnapshot(int formatVersion, Instant exportedAt, List<User
         public static ApplicationSelection from(BlockedApplication app) { return new ApplicationSelection(app.displayName(), app.executablePath().toString()); }
     }
     public record WorkspaceSelection(UUID id, String name, UUID classroomId, FocusPreferences preferences,
-                                     List<UUID> resourceIds, List<String> blockedPaths) {
-        public WorkspaceSelection { resourceIds = List.copyOf(resourceIds); blockedPaths = List.copyOf(blockedPaths); }
+                                     List<UUID> resourceIds, List<String> blockedPaths, List<ApplicationSelection> shortcuts) {
+        public WorkspaceSelection(UUID id, String name, UUID classroomId, FocusPreferences preferences, List<UUID> resourceIds, List<String> blockedPaths) {
+            this(id,name,classroomId,preferences,resourceIds,blockedPaths,List.of());
+        }
+        public WorkspaceSelection { resourceIds = List.copyOf(resourceIds); blockedPaths = List.copyOf(blockedPaths); shortcuts = List.copyOf(shortcuts); }
         public static WorkspaceSelection from(FocusWorkspace w) {
             return new WorkspaceSelection(w.id(), w.name(), w.classroomId(), w.preferences(), w.resourceIds().stream().sorted().toList(),
-                    w.blocklist().stream().map(a -> a.executablePath().toString()).sorted().toList());
+                    w.blocklist().stream().map(a -> a.executablePath().toString()).sorted().toList(),
+                    w.shortcuts().stream().sorted(Comparator.comparing(a -> a.executablePath().toString())).map(ApplicationSelection::from).toList());
         }
         public FocusWorkspace toModel(Map<String, BlockedApplication> applicationsByPath) {
             Set<BlockedApplication> blocklist = new HashSet<>();
             for (String path : blockedPaths) blocklist.add(Objects.requireNonNull(applicationsByPath.get(pathKey(path)), "Unknown workspace application"));
-            return new FocusWorkspace(id, name, classroomId, preferences, Set.copyOf(resourceIds), blocklist);
+            return new FocusWorkspace(id, name, classroomId, preferences, Set.copyOf(resourceIds), blocklist,
+                    shortcuts.stream().map(ApplicationSelection::toModel).collect(java.util.stream.Collectors.toSet()));
         }
     }
     public static String pathKey(String path) { return Path.of(path).toAbsolutePath().normalize().toString().toLowerCase(Locale.ROOT); }
