@@ -3,7 +3,7 @@
 ## Scope and milestone gate
 - Build a real Windows desktop application with Java 21, JavaFX, Maven, SQLite, JUnit 5, and JavaFX CSS.
 - Work on exactly the milestone explicitly requested by the user. Stop after that milestone; a plan is not authorization to implement subsequent milestones.
-- The initial planning stage was documentation only. The user's current milestone 1 request authorizes the runnable foundation, domain models, two core port implementations, all nine navigation screens and profile controls. Do not implement later feature workflows.
+- The initial planning stage was documentation only. M1 delivered the foundation. The user's M2 request now authorizes SQLite storage/CRUD for all domain entities, migrations, JSON export/import, profile startup persistence and relevant UI/tests. Do not implement the Windows blocker, reward calculations or unrelated later workflows.
 - Preserve working features. Do not silently defer requirements; record incomplete work and failed checks in docs/traceability.md and the milestone report.
 - The user's instructions take precedence over this file. Ask about material ambiguity while continuing independent work within the authorized scope.
 

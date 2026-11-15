@@ -1,5 +1,5 @@
 @startuml
-title Study Mode - implemented M1 classes (15 November 2026)
+title Study Mode - implemented through M2 persistence (15 November 2026)
 hide empty members
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
@@ -65,10 +65,13 @@ package "application.port" {
   interface UserProfileStore {
     findLocalProfile() : Optional<UserProfile>
     save(profile)
+    delete(id) : boolean
   }
   interface StudySessionLedger {
     save(session)
     findByPeriod(from, to) : List<StudySession>
+    find(id) : Optional<StudySession>
+    delete(id) : boolean
   }
   interface DistractionBlocker {
     start(targets : Set<BlockedApplication>)
@@ -188,6 +191,91 @@ ProfileController ..> ViewComponents
 ProfileController ..> Validation
 MilestoneInfoView --> NavigationPage
 MilestoneInfoView ..> ViewComponents
+
+package "M2 application ports and snapshot data" {
+  interface ClassroomCatalog
+  interface FocusWorkspaceStore
+  interface BlockedApplicationCatalog
+  interface StudyPlanStore
+  interface AchievementStore
+  interface StudyDataArchive
+  interface StudyDataTransfer
+  class StudyDataSnapshot <<record>>
+  class ApplicationSelection <<nested record>>
+  class WorkspaceSelection <<nested record>>
+  class SnapshotValidator
+  class DataImportException <<custom runtime exception>>
+}
+package "M2 persistence and transfer adapters" {
+  class SqliteClassroomCatalog
+  class SqliteFocusWorkspaceStore
+  class SqliteBlockedApplicationCatalog
+  class SqliteStudyPlanStore
+  class SqliteAchievementStore
+  class SqliteStudyDataArchive
+  class SqliteStatements <<package utility>>
+  interface SqlOperation <<nested>>
+  interface RowReader <<nested>>
+  class JsonStudyDataTransfer
+}
+package "M2 UI controllers" {
+  class ClassroomController
+  class DataTransferController
+}
+ClassroomCatalog <|.. SqliteClassroomCatalog
+FocusWorkspaceStore <|.. SqliteFocusWorkspaceStore
+BlockedApplicationCatalog <|.. SqliteBlockedApplicationCatalog
+StudyPlanStore <|.. SqliteStudyPlanStore
+AchievementStore <|.. SqliteAchievementStore
+StudyDataArchive <|.. SqliteStudyDataArchive
+StudyDataTransfer <|.. JsonStudyDataTransfer
+SqliteClassroomCatalog --> SqliteDatabase
+SqliteFocusWorkspaceStore --> SqliteDatabase
+SqliteBlockedApplicationCatalog --> SqliteDatabase
+SqliteStudyPlanStore --> SqliteDatabase
+SqliteAchievementStore --> SqliteDatabase
+SqliteStudyDataArchive --> SqliteDatabase
+SqliteDatabase +-- SqlOperation
+SqliteStatements +-- RowReader
+SqliteClassroomCatalog ..> SqliteStatements
+SqliteFocusWorkspaceStore ..> SqliteStatements
+SqliteBlockedApplicationCatalog ..> SqliteStatements
+SqliteStudyPlanStore ..> SqliteStatements
+SqliteAchievementStore ..> SqliteStatements
+SqliteStudyDataArchive ..> SqliteClassroomCatalog : shared-transaction reads/writes
+SqliteStudyDataArchive ..> SqliteFocusWorkspaceStore
+SqliteStudyDataArchive ..> SqliteBlockedApplicationCatalog
+SqliteStudyDataArchive ..> SqliteStudyPlanStore
+SqliteStudyDataArchive ..> SqliteAchievementStore
+SqliteStudyDataArchive ..> SqliteUserProfileStore
+SqliteStudyDataArchive ..> SqliteStudySessionLedger
+SqliteStudyDataArchive ..> StudyDataSnapshot
+SqliteStudyDataArchive ..> SnapshotValidator
+JsonStudyDataTransfer --> StudyDataArchive
+JsonStudyDataTransfer --> SnapshotValidator
+JsonStudyDataTransfer ..> DataImportException
+SnapshotValidator ..> DataImportException
+SnapshotValidator ..> StudyDataSnapshot
+StudyDataSnapshot +-- ApplicationSelection
+StudyDataSnapshot +-- WorkspaceSelection
+StudyDataSnapshot o-- UserProfile
+StudyDataSnapshot o-- StudySession
+StudyDataSnapshot o-- Classroom
+StudyDataSnapshot o-- StudyGoal
+StudyDataSnapshot o-- StudyTask
+StudyDataSnapshot o-- Achievement
+StudyDataSnapshot o-- AchievementAward
+WorkspaceSelection --> FocusPreferences
+WorkspaceSelection ..> FocusWorkspace : reconstructs
+ApplicationSelection ..> BlockedApplication : reconstructs metadata
+AppShell --> ClassroomController
+AppShell --> DataTransferController
+ClassroomController --> ClassroomCatalog
+DataTransferController --> StudyDataTransfer
+DataTransferController ..> StudyDataSnapshot
+StudyModeApplication ..> SqliteClassroomCatalog : constructs
+StudyModeApplication ..> SqliteStudyDataArchive : constructs
+StudyModeApplication ..> JsonStudyDataTransfer : constructs
 
 note bottom of StudyModeApplication
   Domain models have no JavaFX/JDBC dependencies.

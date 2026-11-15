@@ -8,4 +8,6 @@ import java.util.List;
 public interface StudySessionLedger {
     void save(StudySession session);
     List<StudySession> findByPeriod(Instant fromInclusive, Instant toExclusive);
+    java.util.Optional<StudySession> find(java.util.UUID id);
+    boolean delete(java.util.UUID id);
 }

@@ -6,4 +6,5 @@ import java.util.Optional;
 public interface UserProfileStore {
     Optional<UserProfile> findLocalProfile();
     void save(UserProfile profile);
+    boolean delete(java.util.UUID id);
 }

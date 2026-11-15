@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnabledIfSystemProperty(named = "studymode.ui.tests", matches = "true")
 class JavaFxSmokeTest {
     @TempDir Path root;
+    @TempDir Path exports;
     @Test void allNinePagesNavigateAndProfileFormValidatesSavesAndEdits() throws Exception {
         CountDownLatch ready = new CountDownLatch(1);
         Platform.startup(ready::countDown);
@@ -31,7 +32,8 @@ class JavaFxSmokeTest {
         try {
             fx(() -> {
                 shell[0] = new AppShell(service, io, Optional.empty(), new StartupConfiguration(root, "dashboard", 1200, 800), new StartupConfigurationLoader(),
-                        new com.studymode.platform.simulation.SimulatedDistractionBlocker(Clock.systemUTC()), 0);
+                        new com.studymode.platform.simulation.SimulatedDistractionBlocker(Clock.systemUTC()), 0,
+                        new SqliteClassroomCatalog(database), new com.studymode.persistence.transfer.JsonStudyDataTransfer(new SqliteStudyDataArchive(database, Clock.systemUTC()), root));
                 stage[0] = new Stage(); stage[0].setTitle("Study Mode — UI test");
                 Scene scene = new Scene(shell[0], 1200, 800);
                 scene.getStylesheets().add(getClass().getResource("/styles/dark.css").toExternalForm());
@@ -68,6 +70,33 @@ class JavaFxSmokeTest {
             var edited = new SqliteUserProfileStore(new SqliteDatabase(root.resolve("ui.db"))).findLocalProfile().orElseThrow();
             assertEquals(created.id(), edited.id()); assertEquals("Edited Student", edited.displayName());
             assertTrue(java.nio.file.Files.exists(root.resolve("settings.properties")));
+            fx(() -> { shell[0].navigate(NavigationPage.CLASSROOMS); shell[0].applyCss(); shell[0].layout(); });
+            io.submit(() -> { }).get(10, TimeUnit.SECONDS);
+            fx(() -> {
+                ((TextField) shell[0].lookup("#classroom-name")).setText("UI classroom");
+                ((Button) shell[0].lookup("#save-classroom")).fire();
+            });
+            io.submit(() -> { }).get(10, TimeUnit.SECONDS);
+            fx(() -> assertTrue(shell[0].lookupAll(".feedback").stream().map(node -> ((Label) node).getText()).anyMatch(text -> text.contains("Classroom saved"))));
+            assertEquals("UI classroom", new SqliteClassroomCatalog(new SqliteDatabase(root.resolve("ui.db"))).findAll().getFirst().name());
+            try (var c = database.open(); var s = c.createStatement()) { s.execute("CREATE TRIGGER ui_failure BEFORE UPDATE ON classroom BEGIN SELECT RAISE(ABORT,'test failure'); END"); }
+            fx(() -> {
+                ((TextField) shell[0].lookup("#classroom-name")).setText("Must not save"); ((Button) shell[0].lookup("#save-classroom")).fire();
+            });
+            io.submit(() -> { }).get(10, TimeUnit.SECONDS);
+            fx(() -> assertTrue(shell[0].lookupAll(".feedback").stream().map(node -> ((Label) node).getText()).anyMatch(text -> text.contains("Could not save classroom"))));
+            assertEquals("UI classroom", new SqliteClassroomCatalog(database).findAll().getFirst().name());
+            var dataController = new com.studymode.ui.controller.DataTransferController(
+                    new com.studymode.persistence.transfer.JsonStudyDataTransfer(new SqliteStudyDataArchive(database, Clock.systemUTC()), root), io,
+                    snapshot -> { }, value -> { });
+            Path export = exports.resolve("ui-export.json");
+            fx(() -> { stage[0].getScene().setRoot(dataController.view()); dataController.exportTo(export); });
+            io.submit(() -> { }).get(10, TimeUnit.SECONDS);
+            fx(() -> assertTrue(dataController.view().lookupAll(".feedback").stream().map(node -> ((Label) node).getText()).anyMatch(text -> text.contains("Study data exported"))));
+            assertTrue(java.nio.file.Files.exists(export));
+            fx(() -> dataController.exportTo(export));
+            io.submit(() -> { }).get(10, TimeUnit.SECONDS);
+            fx(() -> assertTrue(dataController.view().lookupAll(".feedback").stream().map(node -> ((Label) node).getText()).anyMatch(text -> text.contains("Export failed"))));
         } finally {
             fx(() -> { if (stage[0] != null) stage[0].close(); });
             io.shutdown(); assertTrue(io.awaitTermination(10, TimeUnit.SECONDS)); Platform.exit();

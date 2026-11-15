@@ -24,6 +24,7 @@ public final class ProfileController {
     private final ComboBox<String> zone = new ComboBox<>();
     private final Label feedback = text("", "feedback");
     private final Button save = new Button("Save profile");
+    private final Label heading = text("", "section-title");
     private final VBox view;
 
     public ProfileController(ProfileService service, ExecutorService io, Optional<UserProfile> existing, Consumer<UserProfile> onSaved) {
@@ -38,13 +39,20 @@ public final class ProfileController {
         name.setOnAction(event -> save());
         Label nameLabel = text("Display name", "field-label"); nameLabel.setLabelFor(name);
         Label zoneLabel = text("Study time zone", "field-label"); zoneLabel.setLabelFor(zone);
-        view = card(text(existing.isPresent() ? "Your local profile" : "Create your local profile", "section-title"),
+        heading.setText(existing.isPresent() ? "Your local profile" : "Create your local profile");
+        view = card(heading,
                 text("Saved on this computer. No account or sign-in required.", "muted"),
                 nameLabel, name, zoneLabel, zone,
                 text("Your study zone will define calendar days for future statistics and streaks.", "muted"), save, feedback);
     }
 
     public VBox view() { return view; }
+    public void reload(Optional<UserProfile> profile) {
+        heading.setText(profile.isPresent() ? "Your local profile" : "Create your local profile");
+        name.setText(profile.map(UserProfile::displayName).orElse(""));
+        zone.setValue(profile.map(p -> p.studyZone().getId()).orElse(ZoneId.systemDefault().getId()));
+        feedback.setText("");
+    }
 
     private void save() {
         if (save.isDisabled()) return;
@@ -63,6 +71,7 @@ public final class ProfileController {
                 UserProfile saved = service.saveDetails(validatedName, validatedZone);
                 Platform.runLater(() -> {
                     name.setText(saved.displayName()); feedback.setText("Profile saved on this computer.");
+                    heading.setText("Your local profile");
                     feedback.getStyleClass().add("success"); setBusy(false); onSaved.accept(saved);
                 });
             } catch (StudyDataException | IllegalArgumentException e) {

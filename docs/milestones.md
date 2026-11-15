@@ -22,11 +22,11 @@ Scope amended by the user's explicit M1 request on 15 November 2026. This implem
 
 Acceptance: build/test domain validation, profile persistence/reopen, properties precedence/read-write, migrations, duplicate profile/session prevention, immutable ledger finalization, exact period queries, blocker simulation and error handling. Real JavaFX smoke test navigates every destination, validates/creates/edits the profile, resizes and saves preferences. Record actual Maven launch and host restrictions honestly. Classroom/workspace editing, timers, process termination, goals/reward workflows and export/import remain later milestones.
 
-## M2 — Classrooms, resources and saved workspaces
+## M2 — Persistence (user-amended scope)
 
-Implement classroom/resource CRUD with archive rules, validated HTTP/HTTPS links opening in the default browser on click, workspace preferences, selected resources, and stored executable blocklist metadata. Add real Classrooms/Workspaces navigation, empty/error states and migrations. Blocklist editing explicitly says enforcement is unavailable until M5; there is no Start Blocking action.
+The user's M2 request supersedes the initial classroom/workspace-only slice: automatically initialize/migrate SQLite; persist profiles, sessions, goals, blocked selections, classrooms/resources, workspaces, tasks and achievement facts; implement entity CRUD, constraints/prepared statements, relationship-safe edits/deletes and temporary-DB integration tests. Bring validated JSON export/import forward from M7, with preview/confirmation, verified pre-import backup and atomic rollback. Preserve the profile UI/startup behaviour. Classroom subject CRUD and Settings data-transfer controls make this storage usable. No Windows blocker or rewards engine is authorized.
 
-Checks: domain validation boundaries, resource/classroom membership, unique executable paths, CRUD/restart persistence, referenced archive behaviour and transaction rollback. Smoke external links, editing dialogs, selectors and resizing. Verify `List<StudyResource>` and `Set<BlockedApplication>` are genuinely used.
+Checks: full entity round trip/reopen, M1 migration preservation, migration failure rollback, reference constraints/delete effects, invalid SQL/data, strict bounded JSON parsing, complete export/import, backup failure, injected mid-import SQL failure, immutable sessions, profile/navigation regression and actual classroom save/error feedback. Full resource-link/workspace workflow editors and archive UI are not included in this persistence-only scope; track them as future workflow work.
 
 ## M3 — Focus cycles and study history with simulation
 

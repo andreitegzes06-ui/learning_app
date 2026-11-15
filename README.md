@@ -1,8 +1,12 @@
 # Study Mode
 
-A Java 21 / JavaFX Windows desktop application for organising a local study environment. **Milestone 1: project foundation.**
+A Java 21 / JavaFX Windows desktop application for organising a local study environment. **Milestone 2: reliable SQLite persistence and JSON transfer.**
 
-The application currently has working navigation across Dashboard, Focus Session, Classrooms, Workspaces, Blocked Applications, Goals, Statistics, Achievements and Settings. Create/edit a local profile in Settings, save window preferences, and reopen the app to restore your profile. First launch opens Settings until a profile exists. Other feature screens state exactly which later milestone will implement their workflow; no timer or Windows enforcement is active.
+The application has working navigation across all nine screens. Settings creates/edits the persistent local profile and provides JSON export/import. Classrooms supports creating, listing, editing and deleting subjects. Other workflow screens remain explicitly labelled as unfinished. No timer, Windows enforcement or reward calculations run.
+
+SQLite now stores profiles, sessions, classrooms/resources, workspaces and their selections, blocked-application metadata, goals, tasks, achievement definitions and recorded awards. The persistence APIs provide CRUD operations; the later workspace/task/session/reward workflow editors remain out of scope. First launch creates a user-writable data directory and database automatically; existing M1 databases migrate to schema 2 without losing profile/session facts.
+
+For the complete schema, relationship rules and acceptance evidence, see [M2 persistence](docs/persistence-m2.md) and [M2 verification](docs/verification/m2.md).
 
 ## Build and launch
 
@@ -59,7 +63,7 @@ Properties files support start-page, blocker and window dimensions. Precedence: 
 .\mvnw.cmd '-Dstudymode.ui.tests=true' verify
 ```
 
-The normal suite tests validation, properties I/O/precedence, SQLite migrations/reopen/corruption handling, singleton profile/session integrity, immutable session finalization, exact timestamp query boundaries and safe simulation. The opt-in JavaFX test opens a real window, checks all nine destinations, creates/edits a profile, resizes and saves preferences. Tests use temporary data directories. M1's final suite has 30 tests with UI enabled; ordinary runs intentionally skip the one GUI test.
+The suite tests domain/configuration validation, entity CRUD and reopen, migration preservation/rollback, SQL constraints, consistent snapshots, full JSON round trips, invalid/oversized imports, backup failure and SQL-failure rollback. The opt-in JavaFX test exercises nine destinations, profile creation/editing, classroom persistence, readable save errors, JSON export/error feedback, resizing and preferences. Tests use temporary data directories. The M2 suite has **48 tests with UI enabled**; ordinary runs intentionally skip the one GUI test.
 
 | Location | Responsibility |
 | --- | --- |
@@ -77,9 +81,10 @@ The core interfaces are implemented by `SqliteStudySessionLedger` and `Simulated
 
 ## Current limits
 
-- Focus cycles/history UI (M3), classroom/workspace editing (M2), goals/tasks/statistics (M4), Windows enforcement (M5), rewards (M6) and transfer/presets (M7) remain unimplemented and are clearly labelled in the UI.
+- Focus cycles/history UI (M3), full resource/workspace editing, goals/tasks/statistics workflows, Windows enforcement (M5), rewards (M6) and named startup presets remain unimplemented and labelled. Their underlying records can already be persisted and transferred; no feature engine is implied by storage support.
 - Session persistence is a tested foundation contract; snapshots, per-day checkpoints and indexed/paged history must be added in M3 while preserving existing facts. Period queries currently filter/sort loaded records in memory.
-- Self-contained Windows packaging and complete DPI/accessibility acceptance remain M8 work; launch through Maven for this milestone.
+- JSON import is replacement, not merge: validation and preview precede confirmation; a verified recovery JSON backup is mandatory; all DB changes commit together or roll back. Unfinished imported sessions become interrupted, and locally unfinished sessions prevent import. Exports require a new filename outside the app data root; existing files are never overwritten. Backups/exports contain private data without encryption. M1 had no export format, so format 1 begins with M2.
+- Self-contained Windows packaging and complete DPI/accessibility acceptance remain M8 work; launch through Maven.
 - Maven clean fails to remove generated read-only directories in this OneDrive-backed checkout. The Windows convenience script's `build` task removes **only** the verified local `target` output using native PowerShell before Maven `clean verify`; it refuses linked target directories. No source or user data is removed. Prefer a nonsynced checkout for ordinary direct Maven clean builds.
 
-See [M1 verification](docs/verification/m1.md), [traceability](docs/traceability.md), [actual-code UML](docs/uml-implemented.puml) and the [planning index](docs/README.md). Development rules: [AGENTS.md](AGENTS.md).
+See [M2 verification](docs/verification/m2.md), [traceability](docs/traceability.md), [actual-code UML](docs/uml-implemented.puml) and the [planning index](docs/README.md). Development rules: [AGENTS.md](AGENTS.md).

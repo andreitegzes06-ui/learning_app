@@ -1,5 +1,9 @@
 # Application architecture (planned)
 
+## M2 persistence amendment
+
+The user's M2 request authorizes all entity persistence and JSON transfer now. See [actual M2 persistence contract](persistence-m2.md) for ports/adapters, schema 2, edit/delete rules and backup/replacement semantics. ClassroomController now provides persistent subject CRUD; DataTransferController connects Settings to StudyDataTransfer. SqliteStudyDataArchive coordinates consistent multi-table snapshots/replacements, while SnapshotValidator checks the immutable portable records. JSON format 1 includes current facts only. No Windows enforcement, reward policy or timer engine is added. The original target architecture below still includes unimplemented later workflows.
+
 ## M1 implementation amendment
 
 The user's milestone 1 request supersedes the initial two-page shell scope: all nine named screens now navigate, with later feature workflows explicitly labelled as unavailable. Models for profile, session facts, classrooms/resources, workspaces/preferences/blocklist selections, goals/tasks and achievement definitions/awards are implemented now; `FocusCycle`, reward policy and later workflow services remain planned. This document otherwise describes the target architecture, not completed work. See [actual-code UML](uml-implemented.puml) and [M1 verification](verification/m1.md) for implementation evidence.

@@ -1,6 +1,19 @@
 # Requirements-to-implementation checklist
 
-Status on 15 November 2026: M1 foundation implemented. `[x]` means verified for the stated scope; `[ ]` or partial means remaining work is pending. Planned target features do not count as implemented workflows. Evidence: [M1 verification](verification/m1.md), [file inventory](verification/m1-files.md), [actual-code UML](uml-implemented.puml).
+Status on 15 November 2026: M2 persistence implemented. `[x]` means verified for the stated scope; `[ ]` or partial means remaining work is pending. Stored facts do not imply completed workflow engines. Evidence: [M2 verification](verification/m2.md), [persistence contract](persistence-m2.md), [actual-code UML](uml-implemented.puml). Historical M1 evidence remains in its report.
+
+## M2 requirements and acceptance
+
+- [x] R1/R4/R11: first-start database and writable directory creation; V001/V002 initialization and versioned transactional migrations.
+- [x] R2/R5: CRUD persistence for profile, session, goal, blocked selection, classroom/resource, workspace, task and achievement definition/award facts.
+- [x] R3/R13: PK/unique/range/enum/FK constraints; composite resource membership; restrictive/cascading/detaching delete rules with rollback.
+- [x] R6/R7: profile controls use real storage and bootstrap loads existing data; create/edit/reopen and actual startup checked.
+- [x] R8/R9/R10: bounded lock wait, prepared entity statements, short-lived connections, explicit rollback/resource cleanup and readable SQLException/IOException feedback.
+- [x] R12: complete versioned JSON export/import, strict bounded validation, preview/confirmation, verified recovery backup and atomic replacement; no overwrite or merge.
+- [x] R14: temporary-database integration tests for every entity, M1 upgrades, rejected records, edit/delete relationships and failure rollback.
+- [x] Acceptance: profile create/edit survives reopen; classroom create/retrieve works; invalid data rejected; SQL and export failures surface in real JavaFX feedback.
+- [x] Clean build and all 48 tests pass, including real-window UI regression. Windows blocker and reward engine remain absent.
+- [x] Updated docs, actual-code UML and launch instructions; commit hash is reported after Git confirms success.
 
 ## This stage
 
@@ -41,13 +54,13 @@ The historical M0 commit was never created. The first M1 source commit also incl
 | F1 | Persistent local user profile | UserProfile, ProfileService, SqliteUserProfileStore | M1 | SqliteFoundationTest and JavaFxSmokeTest; actual app restart | [x] |
 | F2 | Study timer, focus/break cycles, immediate Stop | FocusCycle, FocusSessionService | M3 | Deterministic transition/pause/stop/suspend tests and UI check | [ ] |
 | F3 | User-selected Windows application blocking | WindowsDistractionBlocker | M5 | Safe fixture terminated; excluded/failed targets accurately reported | [ ] |
-| F4 | Custom subjects/courses as classrooms | Classroom, ClassroomService | M2 | CRUD/archive and restart persistence | [ ] |
-| F5 | Educational resource links including Google Classroom, no Google auth | StudyResource, ClassroomService | M2 | Valid HTTP/HTTPS browser launch; rejected unsafe schemes; no auth integration | [ ] |
-| F6 | Configurable workspaces: classroom/durations/resources/blocklist | FocusWorkspace, WorkspaceService | M2, M3, M5 | Saved/reloaded environment drives session and selected adapter | [ ] |
-| F7 | Goals and tasks | StudyGoal, StudyTask, StudyPlanningService | M4 | CRUD/completion and period progress from actual session data | [ ] |
+| F4 | Custom subjects/courses as classrooms | ClassroomCatalog/SqliteClassroomCatalog, ClassroomController | M2 | Subject CRUD/reopen tested; confirmed deletion follows relationship rules | [x] basic subject CRUD; resource editor remains future |
+| F5 | Educational resource links including Google Classroom, no Google auth | StudyResource, ClassroomCatalog | M2 storage; later workflow | Resources persist and validate; no auth integration | Partial: interactive link editing/launch pending |
+| F6 | Configurable workspaces: classroom/durations/resources/blocklist | FocusWorkspaceStore/SqliteFocusWorkspaceStore | M2, M3, M5 | Aggregate CRUD, relationship rollback and JSON round trip pass | Partial: storage complete; editor/session integration pending |
+| F7 | Goals and tasks | StudyPlanStore/SqliteStudyPlanStore | M2 storage; M4 workflow | CRUD/completion facts persist; optional references clear on deletion | Partial: progress/workflow UI pending |
 | F8 | History and statistics | StudySessionLedger, StudyStatisticsService | M3, M4 | Correct filters/totals/paging; no-break accounting | [ ] |
 | F9 | XP, achievements, levels, streaks | RewardPolicy, RewardService, RewardStore | M6 | Idempotence and calendar-boundary tests; real UI awards | [ ] |
-| F10 | Local export/import | StudyDataTransfer, JsonStudyDataTransfer | M7 | Full round trip, preview/backup, validation and rollback | [ ] |
+| F10 | Local export/import | StudyDataTransfer/JsonStudyDataTransfer, StudyDataArchive/SqliteStudyDataArchive, DataTransferController | M2 (brought forward) | Complete round trip, preview/backup, strict validation and rollback tests | [x] format 1 replacement; no merge |
 | F11 | Multiple startup configurations | StartupConfigurationLoader, properties presets/CLI | M1, M7 | StartupConfigurationTest; two config sources and precedence/errors | Partial: files/CLI work; named presets M7 |
 
 ## Grading evidence
@@ -57,7 +70,7 @@ The historical M0 commit was never created. The first M1 source commit also incl
 | G1 | At least 4 meaningful application-specific classes | UserProfile, ProfileService, SqliteUserProfileStore, AppShell and other real application/domain types; 35 source types | M1 | [x] |
 | G2 | At least 2 implemented interfaces | Three actual ports/adapters: UserProfileStore, StudySessionLedger, DistractionBlocker; concrete persistence/simulation tests | M1; Windows adapter M5 | [x] foundation |
 | G3 | At least 2 genuine collections | Set<BlockedApplication> for workspace/simulation selections; List<StudySession> for durable ordered ledger reads at startup; immutability/deduplication tests | M1 | [x] foundation; history UI M3 |
-| G4 | Accurate UML class relationships | Actual-code PlantUML and rendered SVG: all 35 main source types, concrete implementations/dependencies; parser checks pass | M1-M8 | [x] M1; keep current |
+| G4 | Accurate UML class relationships | Actual-code PlantUML and rendered SVG: 55 top-level and four nested types, concrete implementations/dependencies | M1-M8 | [x] through M2; keep current |
 | G5 | Read and write data to files | Actual UTF-8 properties load/save and SQLite DB; portable JSON remains M7 | M1, M7 | [x] file I/O foundation |
 | G6 | Configuration and/or startup arguments | Validated properties and CLI flags exercised by StartupConfigurationTest; presets remain later | M1, M7 | [x] foundation |
 | G7 | At least 3 standard exceptions handled | NumberFormatException in config, IOException in file/config/startup, SQLException in JDBC; tested error paths. Also URI/path/security exceptions | M1 | [x] |

@@ -1,5 +1,7 @@
 # Persistence, files, and Windows integration (planned)
 
+M2 implementation update: the user's persistence milestone brings entity CRUD and JSON transfer forward. [persistence-m2.md](persistence-m2.md) is the actual schema/transaction/JSON contract. Original future-table proposals and M7 labels below remain design history, not a claim of implemented columns. Windows integration remains unimplemented.
+
 ## Local storage and configuration
 
 Default data root: `%LOCALAPPDATA%\StudyMode\`. Resolve the environment value safely; if absent, show an actionable startup error or use an explicitly supplied `--data-dir`. Do not store writable data beside the installed executable or in the source tree. Unit/integration tests always supply a temporary root.

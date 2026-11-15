@@ -49,7 +49,7 @@ class SqliteFoundationTest {
         Files.write(broken, original);
         assertThrows(StudyDataException.class, () -> new SchemaMigrator(new SqliteDatabase(broken)).migrate());
         assertArrayEquals(original, Files.readAllBytes(broken));
-        assertThrows(StudyDataException.class, () -> new SchemaMigrator(new SqliteDatabase(root.resolve("missing/folder.db"))).migrate());
+        assertThrows(StudyDataException.class, () -> new SchemaMigrator(new SqliteDatabase(root)).migrate());
     }
     @Test void ledgerPersistsQueriesAndFinalizesIdempotently() {
         UUID profileId = UUID.randomUUID(); profiles.save(new UserProfile(profileId, "Student", start, zone));

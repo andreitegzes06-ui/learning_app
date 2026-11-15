@@ -50,7 +50,9 @@ public final class StudyModeApplication extends Application {
                 // Loading records and blocker status never starts a session or modifies processes.
                 directoryLock = acquired; acquired = null;
                 if (!stopping) Platform.runLater(() -> {
-                    if (!stopping) showScene(stage, new AppShell(profiles, io, profile, config, configurationLoader, blocker, sessions.size()), config.windowWidth(), config.windowHeight());
+                    if (!stopping) showScene(stage, new AppShell(profiles, io, profile, config, configurationLoader, blocker, sessions.size(),
+                            new SqliteClassroomCatalog(database), new com.studymode.persistence.transfer.JsonStudyDataTransfer(
+                                    new SqliteStudyDataArchive(database, Clock.systemUTC()), config.dataDirectory())), config.windowWidth(), config.windowHeight());
                 });
             } catch (IOException | StudyDataException | IllegalArgumentException | SecurityException e) {
                 if (!stopping) Platform.runLater(() -> showFailure(stage, e));

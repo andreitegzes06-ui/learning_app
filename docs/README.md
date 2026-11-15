@@ -1,6 +1,6 @@
 # Study Mode planning baseline
 
-Milestone 1 foundation, 15 November 2026. The initial planning baseline remains below; runtime scope and evidence are tracked separately. Start with the [application README](../README.md) for build/launch instructions.
+Milestone 2 persistence, 15 November 2026. The initial planning baseline remains below; runtime scope and evidence are tracked separately. Start with the [application README](../README.md) for build/launch instructions.
 
 | Document | Purpose |
 | --- | --- |
@@ -13,7 +13,9 @@ Milestone 1 foundation, 15 November 2026. The initial planning baseline remains 
 | [M0 verification](verification/m0.md) | Document checks and explicit testing limitations |
 | [M1 verification](verification/m1.md) | Implemented foundation, tests, launch and known host issues |
 | [M1 file inventory](verification/m1-files.md) | Created/modified source, resources, tests and documentation |
-| [Implemented UML](uml-implemented.puml) / [SVG](uml-implemented.svg) | Only actual M1 classes/interfaces/relationships |
+| [M2 persistence](persistence-m2.md) | Actual schema, CRUD/delete policies, JSON format and recovery |
+| [M2 verification](verification/m2.md) | Acceptance evidence, tests and scope limits |
+| [Implemented UML](uml-implemented.puml) / [SVG](uml-implemented.svg) | Only actual classes/interfaces/relationships through M2 |
 
 Project development rules live in [AGENTS.md](../AGENTS.md).
 
