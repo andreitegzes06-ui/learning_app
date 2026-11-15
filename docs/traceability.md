@@ -1,6 +1,22 @@
 # Requirements-to-implementation checklist
 
-Status on 15 November 2026: M2 persistence implemented. `[x]` means verified for the stated scope; `[ ]` or partial means remaining work is pending. Stored facts do not imply completed workflow engines. Evidence: [M2 verification](verification/m2.md), [persistence contract](persistence-m2.md), [actual-code UML](uml-implemented.puml). Historical M1 evidence remains in its report.
+Status on 15 November 2026: focus workflow implemented following M1/M2 and the JSON correction. `[x]` means verified for the stated scope; `[ ]` or partial means remaining work is pending. Historical sections retain their original counts/scope. Current evidence: [focus verification](verification/focus-workflow.md), [focus contract](focus-workflow.md), [actual-code UML](uml-implemented.puml).
+
+## Current focus milestone acceptance
+
+- [x] R1: working Start/Pause/Resume/Finish/Stop, custom duration, 25/50-minute presets, readable countdown and progress.
+- [x] R2: IDLE/RUNNING/PAUSED/COMPLETED/INTERRUPTED transitions; existing ACTIVE persistence reused.
+- [x] R3: monotonic injected timing, fractional accumulation, pause exclusion, duplicate prevention, close interruption and checkpoint-only crash recovery.
+- [x] R4: existing SQLite ledger persists profile, optional classroom/goal, timestamps, actual seconds, outcome and explicit demo flag; additive schema 3 preserves prior data.
+- [x] R5: working persistent History with date/classroom/duration/outcome and mode/goal.
+- [x] R6: committed-session Dashboard totals, current-zone completion-day totals, completed count and most recent outcome.
+- [x] R7: dark JavaFX screen, responsive cards, background I/O, bounded scheduled ticks, save errors/retry and honest empty states.
+- [x] R8: duration, references, transitions and duplicate validation; FocusModeException reused; SQL uniqueness/FKs retained.
+- [x] R9: deterministic clock, lifecycle, recovery, rollback/save failures, reload and statistics tests; actual-window workflow test.
+- [x] R10: explicit demo/testing mode permits real short sessions; real 10-second test saves exactly 10 seconds, never the standard preset duration.
+- [x] Full build: 679 tests, zero failures/errors/skips including opt-in GUI and real-time test. Strict JSON type regression suite expanded for format 2.
+- [x] Actual UML and launch/demo documentation updated. No Windows termination or rewards implemented.
+- [ ] Future: break cycles, history paging/filtering, detailed charts, goal editor/progress, workspace integration, Windows blocking and rewards.
 
 ## Post-audit JSON validation correction
 

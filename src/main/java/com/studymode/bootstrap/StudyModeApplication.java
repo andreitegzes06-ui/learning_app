@@ -1,6 +1,8 @@
 package com.studymode.bootstrap;
 
 import com.studymode.application.service.ProfileService;
+import com.studymode.application.service.FocusSessionService;
+import com.studymode.application.service.StudyStatisticsService;
 import com.studymode.application.port.DistractionBlocker;
 import com.studymode.application.port.StudySessionLedger;
 import com.studymode.platform.simulation.SimulatedDistractionBlocker;
@@ -28,6 +30,8 @@ public final class StudyModeApplication extends Application {
     private DataDirectoryLock directoryLock;
     private final DistractionBlocker blocker = new SimulatedDistractionBlocker(Clock.systemUTC());
     private volatile boolean stopping;
+    private FocusSessionService focusSessions;
+    private AppShell shell;
 
     @Override public void start(Stage stage) {
         stage.setTitle("Study Mode"); stage.setMinWidth(900); stage.setMinHeight(640);
@@ -46,13 +50,20 @@ public final class StudyModeApplication extends Application {
                 ProfileService profiles = new ProfileService(new SqliteUserProfileStore(database), Clock.systemUTC());
                 var profile = profiles.load();
                 StudySessionLedger ledger = new SqliteStudySessionLedger(database);
-                var sessions = ledger.findByPeriod(java.time.Instant.MIN, java.time.Instant.MAX);
+                focusSessions = new FocusSessionService(ledger,new SqliteUserProfileStore(database),new SqliteClassroomCatalog(database),
+                        new SqliteStudyPlanStore(database),Clock.systemUTC(),System::nanoTime,config.demoMode());
+                focusSessions.recoverUnfinished();
                 // Loading records and blocker status never starts a session or modifies processes.
                 directoryLock = acquired; acquired = null;
                 if (!stopping) Platform.runLater(() -> {
-                    if (!stopping) showScene(stage, new AppShell(profiles, io, profile, config, configurationLoader, blocker, sessions.size(),
-                            new SqliteClassroomCatalog(database), new com.studymode.persistence.transfer.JsonStudyDataTransfer(
-                                    new SqliteStudyDataArchive(database, Clock.systemUTC()), config.dataDirectory())), config.windowWidth(), config.windowHeight());
+                    if (!stopping) {
+                        stage.setTitle(config.demoMode() ? "Study Mode — Demo / Test" : "Study Mode");
+                        shell = new AppShell(profiles, io, profile, config, configurationLoader, blocker,
+                                new SqliteClassroomCatalog(database), new com.studymode.persistence.transfer.JsonStudyDataTransfer(
+                                new SqliteStudyDataArchive(database, Clock.systemUTC()), config.dataDirectory()),focusSessions,new StudyStatisticsService(ledger,Clock.systemUTC()));
+                        showScene(stage,shell,config.windowWidth(),config.windowHeight());
+                        stage.setOnCloseRequest(event -> { event.consume(); shell.requestClose(Platform::exit); });
+                    }
                 });
             } catch (IOException | StudyDataException | IllegalArgumentException | SecurityException e) {
                 if (!stopping) Platform.runLater(() -> showFailure(stage, e));
@@ -81,8 +92,13 @@ public final class StudyModeApplication extends Application {
     @Override public void stop() {
         stopping = true;
         blocker.stop();
+        if (shell != null) shell.close();
         // This queued cleanup follows any profile save already submitted; it does not block the FX thread.
-        io.execute(() -> { if (directoryLock != null) closeLock(directoryLock); });
+        io.execute(() -> {
+            try { if (focusSessions != null) focusSessions.shutdown(); }
+            catch (StudyDataException e) { System.err.println("Final session save failed; restart recovery will use the last committed checkpoint: " + e.getMessage()); }
+            finally { if (directoryLock != null) closeLock(directoryLock); }
+        });
         io.shutdown();
     }
     private void closeLock(DataDirectoryLock lock) {

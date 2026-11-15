@@ -1,5 +1,11 @@
 # Application architecture (planned)
 
+## Implemented focus workflow amendment
+
+The current user request replaces the original M3 cycle scope with single focus sessions, history and real dashboard totals. `FocusSessionService` orchestrates the existing ledger/profile/classroom/plan ports using injected `Clock` and monotonic `LongSupplier`. `StudyStatisticsService` derives summaries from committed facts. `FocusState` describes UI lifecycle; existing persisted `SessionStatus.ACTIVE` means RUNNING. `SessionContext` captures optional classroom/goal references and labels, planned seconds and explicit demo provenance. JavaFX controllers use the shared background executor; the timer scheduler submits bounded ticks and never performs JDBC on the FX thread.
+
+Schema 3 and JSON format 2 preserve old data; legacy format 1 imports remain strictly validated. See [focus workflow contract](focus-workflow.md), [verification](verification/focus-workflow.md) and [actual UML](uml-implemented.puml). The historical amendments and target architecture below retain future scope; break cycles, Windows enforcement and rewards remain unimplemented.
+
 ## M2 persistence amendment
 
 The user's M2 request authorizes all entity persistence and JSON transfer now. See [actual M2 persistence contract](persistence-m2.md) for ports/adapters, schema 2, edit/delete rules and backup/replacement semantics. ClassroomController now provides persistent subject CRUD; DataTransferController connects Settings to StudyDataTransfer. SqliteStudyDataArchive coordinates consistent multi-table snapshots/replacements, while SnapshotValidator checks the immutable portable records. JSON format 1 includes current facts only. No Windows enforcement, reward policy or timer engine is added. The original target architecture below still includes unimplemented later workflows.

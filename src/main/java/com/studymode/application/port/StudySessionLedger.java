@@ -10,4 +10,5 @@ public interface StudySessionLedger {
     List<StudySession> findByPeriod(Instant fromInclusive, Instant toExclusive);
     java.util.Optional<StudySession> find(java.util.UUID id);
     boolean delete(java.util.UUID id);
+    List<StudySession> findUnfinished();
 }

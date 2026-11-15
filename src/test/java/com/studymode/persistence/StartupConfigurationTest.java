@@ -9,6 +9,12 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class StartupConfigurationTest {
+    @Test void demoModeIsExplicitAndBooleanValuesAreValidated() throws Exception {
+        var parser = new StartupConfigurationLoader();
+        assertTrue(parser.load(java.util.List.of("--data-dir=" + root,"--demo=true","--start-page=history"),java.util.Map.of()).demoMode());
+        assertFalse(parser.load(java.util.List.of("--data-dir=" + root),java.util.Map.of()).demoMode());
+        assertThrows(IllegalArgumentException.class,() -> parser.load(java.util.List.of("--data-dir=" + root,"--demo=yes"),java.util.Map.of()));
+    }
     @TempDir Path root;
     final StartupConfigurationLoader loader = new StartupConfigurationLoader();
     @Test void defaultsAndPreferencesRoundTripWithoutSavingTransientOverrides() throws Exception {

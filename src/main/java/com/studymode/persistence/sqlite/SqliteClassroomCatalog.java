@@ -15,7 +15,7 @@ public final class SqliteClassroomCatalog implements ClassroomCatalog {
     @Override public Optional<Classroom> find(UUID id) { return findAll().stream().filter(c -> c.id().equals(id)).findFirst(); }
     @Override public void save(Classroom classroom) { database.transaction("save classroom and resources", c -> { write(c, classroom); return null; }); }
     @Override public boolean delete(UUID id) {
-        return database.transaction("delete classroom (remove its workspaces first)", c -> update(c, "DELETE FROM classroom WHERE id=?", id) == 1);
+        return database.transaction("delete classroom (check referencing workspaces and session history)", c -> update(c, "DELETE FROM classroom WHERE id=?", id) == 1);
     }
     static List<Classroom> readAll(Connection c) throws SQLException {
         return query(c, "SELECT * FROM classroom ORDER BY name,id", row -> {

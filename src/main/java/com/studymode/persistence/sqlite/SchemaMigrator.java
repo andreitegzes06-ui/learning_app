@@ -15,7 +15,7 @@ public final class SchemaMigrator {
           try (var statement = connection.createStatement()) {
             int version;
             try (var result = statement.executeQuery("PRAGMA user_version")) { result.next(); version = result.getInt(1); }
-            if (version > 2) throw new StudyDataException("This database was created by a newer Study Mode version. Open it with that version.");
+            if (version > 3) throw new StudyDataException("This database was created by a newer Study Mode version. Open it with that version.");
             if (version > 0) {
                 var versions = SqliteStatements.query(connection, "SELECT version FROM schema_version ORDER BY version", row -> row.getInt(1));
                 if (versions.size() != version) throw new StudyDataException("Database version records are inconsistent. Data has not been reset.");
@@ -23,7 +23,7 @@ public final class SchemaMigrator {
                     if (versions.get(i) != i + 1) throw new StudyDataException("Database migration history is inconsistent.");
                 }
             }
-            String[] migrations = {"V001__foundation.sql", "V002__study_data.sql"};
+            String[] migrations = {"V001__foundation.sql", "V002__study_data.sql", "V003__focus_sessions.sql"};
             for (int index = version; index < migrations.length; index++) {
                 String sql;
                 try (var input = SchemaMigrator.class.getResourceAsStream("/db/migration/" + migrations[index])) {

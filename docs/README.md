@@ -1,6 +1,6 @@
 # Study Mode planning baseline
 
-Milestone 2 persistence, 15 November 2026. The initial planning baseline remains below; runtime scope and evidence are tracked separately. Start with the [application README](../README.md) for build/launch instructions.
+Focus workflow milestone, 15 November 2026. The initial planning baseline remains below; runtime scope and evidence are tracked separately. Start with the [application README](../README.md) for build/launch instructions.
 
 | Document | Purpose |
 | --- | --- |
@@ -15,7 +15,9 @@ Milestone 2 persistence, 15 November 2026. The initial planning baseline remains
 | [M1 file inventory](verification/m1-files.md) | Created/modified source, resources, tests and documentation |
 | [M2 persistence](persistence-m2.md) | Actual schema, CRUD/delete policies, JSON format and recovery |
 | [M2 verification](verification/m2.md) | Acceptance evidence, tests and scope limits |
-| [Implemented UML](uml-implemented.puml) / [SVG](uml-implemented.svg) | Only actual classes/interfaces/relationships through M2 |
+| [Focus workflow](focus-workflow.md) | Actual lifecycle, timekeeping, recovery, schema/JSON compatibility and demo |
+| [Focus verification](verification/focus-workflow.md) | Current 679-test build and presentation procedure |
+| [Implemented UML](uml-implemented.puml) / [SVG](uml-implemented.svg) | Only actual classes/interfaces/relationships through the focus milestone |
 
 Project development rules live in [AGENTS.md](../AGENTS.md).
 

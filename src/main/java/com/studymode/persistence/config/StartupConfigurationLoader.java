@@ -17,8 +17,8 @@ import java.util.Set;
 import com.studymode.domain.Validation;
 
 public final class StartupConfigurationLoader {
-    private static final Set<String> KEYS = Set.of("start-page", "blocker", "window-width", "window-height");
-    private static final Set<String> PAGES = Set.of("dashboard", "focus", "classrooms", "workspaces", "blocked", "goals", "statistics", "achievements", "settings");
+    private static final Set<String> KEYS = Set.of("start-page", "blocker", "window-width", "window-height", "demo");
+    private static final Set<String> PAGES = Set.of("dashboard", "focus", "history", "classrooms", "workspaces", "blocked", "goals", "statistics", "achievements", "settings");
 
     public StartupConfiguration load(List<String> arguments, Map<String, String> environment) throws IOException {
         Map<String, String> flags = new HashMap<>();
@@ -86,7 +86,9 @@ public final class StartupConfigurationLoader {
         try {
             int width = Validation.range(Integer.parseInt(properties.getProperty("window-width")), 900, 3840, "Window width");
             int height = Validation.range(Integer.parseInt(properties.getProperty("window-height")), 640, 2160, "Window height");
-            return new StartupConfiguration(root, page, width, height);
+            String demo = properties.getProperty("demo");
+            if (!Set.of("true", "false").contains(demo)) throw new IllegalArgumentException("demo must be exactly true or false.");
+            return new StartupConfiguration(root, page, width, height, Boolean.parseBoolean(demo));
         } catch (NumberFormatException e) { throw new IllegalArgumentException("Window width and height must be whole numbers.", e); }
     }
     private Path absolutePath(String value) {

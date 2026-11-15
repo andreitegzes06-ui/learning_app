@@ -26,7 +26,7 @@ class JsonImportTypeValidationTest {
     private byte[] databaseBefore;
     private Path databaseFile;
     private static final Set<String> OPTIONAL_NULLS = Set.of("/classrooms/0/description", "/tasks/0/classroomId",
-            "/tasks/0/goalId", "/tasks/0/dueDate", "/tasks/0/completedAt");
+            "/tasks/0/goalId", "/tasks/0/dueDate", "/tasks/0/completedAt", "/sessions/0/context/classroomId", "/sessions/0/context/goalId");
 
     @BeforeEach void setup() throws Exception {
         databaseFile = root.resolve("data/study.db");
@@ -155,7 +155,11 @@ class JsonImportTypeValidationTest {
         return error;
     }
     private JsonNode withOptionalValues() {
-        JsonNode full = exported.deepCopy(); ((ObjectNode) full.at("/tasks/0")).put("completedAt", StudyDataFixture.NOW.toString()); return full;
+        JsonNode full = exported.deepCopy(); ((ObjectNode) full.at("/tasks/0")).put("completedAt", StudyDataFixture.NOW.toString());
+        ObjectNode context = (ObjectNode) full.at("/sessions/0/context");
+        context.put("classroomId", full.at("/classrooms/0/id").textValue()).put("classroomName", "Saved classroom");
+        context.put("goalId", full.at("/goals/0/id").textValue()).put("goalName", "Saved goal");
+        return full;
     }
     private JsonNode replace(JsonNode original, String pointer, JsonNode value) {
         if (pointer.isEmpty()) return value.deepCopy();
@@ -174,7 +178,8 @@ class JsonImportTypeValidationTest {
         List<JsonNode> wrong = new ArrayList<>();
         if (!valid.isTextual()) wrong.add(TextNode.valueOf(valid.isNumber() ? valid.toString() : "wrong type"));
         if (!valid.isNumber()) wrong.add(IntNode.valueOf(123));
-        wrong.add(BooleanNode.TRUE); wrong.add(BooleanNode.FALSE);
+        if (!valid.isBoolean()) { wrong.add(BooleanNode.TRUE); wrong.add(BooleanNode.FALSE); }
+        else { wrong.add(TextNode.valueOf("true")); wrong.add(TextNode.valueOf("false")); }
         if (!valid.isObject()) wrong.add(documents.createObjectNode());
         if (!valid.isArray()) wrong.add(documents.createArrayNode());
         wrong.add(NullNode.getInstance());

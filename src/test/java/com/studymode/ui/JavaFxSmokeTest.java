@@ -28,12 +28,15 @@ class JavaFxSmokeTest {
         var io = Executors.newSingleThreadExecutor();
         var database = new SqliteDatabase(root.resolve("ui.db")); new SchemaMigrator(database).migrate();
         var service = new ProfileService(new SqliteUserProfileStore(database), Clock.systemUTC());
+        var fakeNanos = new java.util.concurrent.atomic.AtomicLong();
+        var ledger = new SqliteStudySessionLedger(database);
+        var focus = new com.studymode.application.service.FocusSessionService(ledger,new SqliteUserProfileStore(database),new SqliteClassroomCatalog(database),new SqliteStudyPlanStore(database),Clock.systemUTC(),fakeNanos::get,true);
         Stage[] stage = new Stage[1]; AppShell[] shell = new AppShell[1];
         try {
             fx(() -> {
-                shell[0] = new AppShell(service, io, Optional.empty(), new StartupConfiguration(root, "dashboard", 1200, 800), new StartupConfigurationLoader(),
-                        new com.studymode.platform.simulation.SimulatedDistractionBlocker(Clock.systemUTC()), 0,
-                        new SqliteClassroomCatalog(database), new com.studymode.persistence.transfer.JsonStudyDataTransfer(new SqliteStudyDataArchive(database, Clock.systemUTC()), root));
+                shell[0] = new AppShell(service, io, Optional.empty(), new StartupConfiguration(root, "dashboard", 1200, 800,true), new StartupConfigurationLoader(),
+                        new com.studymode.platform.simulation.SimulatedDistractionBlocker(Clock.systemUTC()),
+                        new SqliteClassroomCatalog(database), new com.studymode.persistence.transfer.JsonStudyDataTransfer(new SqliteStudyDataArchive(database, Clock.systemUTC()), root),focus,new com.studymode.application.service.StudyStatisticsService(ledger,Clock.systemUTC()));
                 stage[0] = new Stage(); stage[0].setTitle("Study Mode — UI test");
                 Scene scene = new Scene(shell[0], 1200, 800);
                 scene.getStylesheets().add(getClass().getResource("/styles/dark.css").toExternalForm());
@@ -70,6 +73,38 @@ class JavaFxSmokeTest {
             var edited = new SqliteUserProfileStore(new SqliteDatabase(root.resolve("ui.db"))).findLocalProfile().orElseThrow();
             assertEquals(created.id(), edited.id()); assertEquals("Edited Student", edited.displayName());
             assertTrue(java.nio.file.Files.exists(root.resolve("settings.properties")));
+            fx(() -> { shell[0].navigate(NavigationPage.FOCUS); shell[0].applyCss(); shell[0].layout(); });
+            io.submit(() -> { }).get(10,TimeUnit.SECONDS);
+            fx(() -> { ((TextField)shell[0].lookup("#focus-duration")).setText("50"); shell[0].navigate(NavigationPage.FOCUS); shell[0].applyCss(); shell[0].layout(); });
+            io.submit(() -> { }).get(10,TimeUnit.SECONDS);
+            fx(() -> {
+                assertEquals("00:50",((Label)shell[0].lookup("#focus-countdown")).getText());
+                ((TextField)shell[0].lookup("#focus-duration")).setText("0"); ((Button)shell[0].lookup("#focus-start")).fire();
+                assertEquals(com.studymode.domain.study.FocusState.IDLE,focus.snapshot().state());
+                ((TextField)shell[0].lookup("#focus-duration")).setText("10"); ((Button)shell[0].lookup("#focus-start")).fire();
+            });
+            io.submit(() -> { }).get(10,TimeUnit.SECONDS); fakeNanos.addAndGet(2_000_000_000L);
+            fx(() -> ((Button)shell[0].lookup("#focus-pause")).fire());
+            io.submit(() -> { }).get(10,TimeUnit.SECONDS); assertEquals(com.studymode.domain.study.FocusState.PAUSED,focus.snapshot().state());
+            fakeNanos.addAndGet(60_000_000_000L); fx(() -> ((Button)shell[0].lookup("#focus-resume")).fire());
+            io.submit(() -> { }).get(10,TimeUnit.SECONDS); fakeNanos.addAndGet(3_000_000_000L);
+            fx(() -> ((Button)shell[0].lookup("#focus-finish")).fire());
+            io.submit(() -> { }).get(10,TimeUnit.SECONDS); assertEquals(5,focus.snapshot().session().activeFocusSeconds());
+            fx(() -> { shell[0].navigate(NavigationPage.HISTORY); shell[0].applyCss(); shell[0].layout(); });
+            io.submit(() -> { }).get(10,TimeUnit.SECONDS);
+            fx(() -> assertEquals(1,((TableView<?>)shell[0].lookup("#session-history")).getItems().size()));
+            fx(() -> { shell[0].navigate(NavigationPage.DASHBOARD); shell[0].applyCss(); shell[0].layout(); });
+            io.submit(() -> { }).get(10,TimeUnit.SECONDS);
+            fx(() -> {
+                assertEquals("1",((Label)shell[0].lookup("#completed-sessions")).getText());
+                assertTrue(((Label)shell[0].lookup("#total-focus")).getText().contains("05s"));
+            });
+            fx(() -> { shell[0].navigate(NavigationPage.FOCUS); shell[0].applyCss(); shell[0].layout(); });
+            io.submit(() -> { }).get(10,TimeUnit.SECONDS);
+            fx(() -> ((Button)shell[0].lookup("#focus-start")).fire()); io.submit(() -> { }).get(10,TimeUnit.SECONDS);
+            fakeNanos.addAndGet(1_000_000_000L); fx(() -> ((Button)shell[0].lookup("#focus-stop")).fire());
+            io.submit(() -> { }).get(10,TimeUnit.SECONDS); assertEquals(com.studymode.domain.study.FocusState.INTERRUPTED,focus.snapshot().state());
+            assertEquals(2,ledger.findByPeriod(java.time.Instant.MIN,java.time.Instant.MAX).size());
             fx(() -> { shell[0].navigate(NavigationPage.CLASSROOMS); shell[0].applyCss(); shell[0].layout(); });
             io.submit(() -> { }).get(10, TimeUnit.SECONDS);
             fx(() -> {
@@ -98,7 +133,7 @@ class JavaFxSmokeTest {
             io.submit(() -> { }).get(10, TimeUnit.SECONDS);
             fx(() -> assertTrue(dataController.view().lookupAll(".feedback").stream().map(node -> ((Label) node).getText()).anyMatch(text -> text.contains("Export failed"))));
         } finally {
-            fx(() -> { if (stage[0] != null) stage[0].close(); });
+            fx(() -> { if (shell[0] != null) shell[0].close(); if (stage[0] != null) stage[0].close(); });
             io.shutdown(); assertTrue(io.awaitTermination(10, TimeUnit.SECONDS)); Platform.exit();
         }
     }

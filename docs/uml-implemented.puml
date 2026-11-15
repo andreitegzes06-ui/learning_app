@@ -1,5 +1,5 @@
 @startuml
-title Study Mode - implemented through M2 persistence (15 November 2026)
+title Study Mode - implemented Focus Session workflow (15 November 2026)
 hide empty members
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
@@ -40,6 +40,8 @@ package "domain (models)" {
     endedAt : Instant
     activeFocusSeconds : long
     status : SessionStatus
+    context : SessionContext
+    checkpointAt : Instant
     finished() : boolean
   }
   enum SessionStatus {
@@ -68,6 +70,7 @@ package "application.port" {
     delete(id) : boolean
   }
   interface StudySessionLedger {
+    findUnfinished() : List<StudySession>
     save(session)
     findByPeriod(from, to) : List<StudySession>
     find(id) : Optional<StudySession>
@@ -280,6 +283,72 @@ DataTransferController ..> StudyDataSnapshot
 StudyModeApplication ..> SqliteClassroomCatalog : constructs
 StudyModeApplication ..> SqliteStudyDataArchive : constructs
 StudyModeApplication ..> JsonStudyDataTransfer : constructs
+
+package "Focus workflow / domain and application" {
+  class SessionContext <<record>>
+  enum FocusState
+  class FocusSessionSnapshot <<record>>
+  class FocusSessionOptions <<record>>
+  class DashboardStatistics <<record>>
+  class FocusSessionService {
+    start(seconds, classroomId, goalId)
+    pause()
+    resume()
+    finish()
+    interrupt()
+    tick()
+    retrySave()
+    recoverUnfinished()
+    shutdown()
+  }
+  class StudyStatisticsService {
+    history(profileId)
+    summary(profileId, zone)
+  }
+}
+package "Focus workflow / JavaFX" {
+  class FocusSessionController
+  class DashboardController
+  class StudyHistoryController
+  class StudyTimeText <<utility>>
+  class Selection <<nested record>>
+}
+StudySession --> SessionContext
+SessionContext ..> Classroom : optional UUID and label snapshot
+SessionContext ..> StudyGoal : optional UUID and label snapshot
+FocusSessionSnapshot --> StudySession
+FocusSessionSnapshot --> FocusState
+FocusSessionOptions o-- UserProfile
+FocusSessionOptions o-- Classroom
+FocusSessionOptions o-- StudyGoal
+DashboardStatistics --> StudySession : most recent saved session
+FocusSessionService --> StudySessionLedger
+FocusSessionService --> UserProfileStore
+FocusSessionService --> ClassroomCatalog
+FocusSessionService --> StudyPlanStore
+FocusSessionService --> StudySession
+FocusSessionService ..> FocusSessionSnapshot
+FocusSessionService ..> FocusSessionOptions
+FocusSessionService ..> FocusModeException
+StudyStatisticsService --> StudySessionLedger
+StudyStatisticsService ..> DashboardStatistics
+AppShell --> FocusSessionController
+AppShell --> DashboardController
+AppShell --> StudyHistoryController
+FocusSessionController +-- Selection
+FocusSessionController --> FocusSessionService
+FocusSessionController ..> FocusSessionSnapshot
+FocusSessionController ..> StudyTimeText
+DashboardController --> ProfileService
+DashboardController --> StudyStatisticsService
+DashboardController ..> StudyTimeText
+StudyHistoryController --> ProfileService
+StudyHistoryController --> StudyStatisticsService
+StudyHistoryController ..> StudyTimeText
+StudyModeApplication --> FocusSessionService
+StudyModeApplication ..> StudyStatisticsService
+StudyJsonStructureValidator ..> SessionContext
+JsonStudyDataTransfer ..> SessionContext : trusted legacy defaults
 
 note bottom of StudyModeApplication
   Domain models have no JavaFX/JDBC dependencies.

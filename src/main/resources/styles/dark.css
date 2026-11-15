@@ -15,6 +15,7 @@
 .brand { -fx-text-fill: #e3e0ff; -fx-font-size: 21px; -fx-font-weight: bold; }
 .sidebar-subtitle { -fx-text-fill: #9ca8c0; -fx-font-size: 11px; }
 .page-title { -fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #f1f4fc; }
+.countdown { -fx-font-size: 64px; -fx-font-weight: bold; -fx-text-fill: #f1f4fc; -fx-font-family: "Consolas", "Monospaced"; }
 .section-title { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #edf1fa; }
 .eyebrow { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #aeb1ff; }
 .muted { -fx-text-fill: #a7b3ca; -fx-line-spacing: 3px; }

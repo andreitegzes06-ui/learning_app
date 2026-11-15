@@ -28,11 +28,13 @@ The user's M2 request supersedes the initial classroom/workspace-only slice: aut
 
 Checks: full entity round trip/reopen, M1 migration preservation, migration failure rollback, reference constraints/delete effects, invalid SQL/data, strict bounded JSON parsing, complete export/import, backup failure, injected mid-import SQL failure, immutable sessions, profile/navigation regression and actual classroom save/error feedback. Full resource-link/workspace workflow editors and archive UI are not included in this persistence-only scope; track them as future workflow work.
 
-## M3 — Focus cycles and study history with simulation
+## M3 — Complete focus session workflow (user-amended scope, implemented)
 
-Implement `FocusCycle`, `StudySession`, `StudySessionLedger`/`SqliteStudySessionLedger`, `DistractionBlocker`/`SimulatedDistractionBlocker`, `FocusSessionService`, timing scheduler, snapshots and per-day checkpoints. Add Focus and History pages. Start/Pause/Resume/Stop, focus/short/long-break rules, saved session history, labelled simulated events and crash recovery work end to end. Persist interrupted and completed sessions without break/pause time. Simulated targets from M2 are observable without claiming real Windows blocking.
+Reuse StudySession, StudySessionLedger/SqliteStudySessionLedger and the existing ports. Implement FocusSessionService with deterministic monotonic timing, Start/Pause/Resume/Finish/Stop, optional classroom/goal context, durable checkpoints/recovery, History and real Dashboard totals. Explicit short demo mode records actual seconds. See [current contract](focus-workflow.md) and [verification](verification/focus-workflow.md).
 
-Checks: fake-clock transitions, zero/invalid durations, long breaks, no duplicate starts/finalization, suspend/clock-change/midnight handling, pause/stop cancellation, restart interrupted recovery, date filtering and paging. Smoke a short test-controlled cycle without changing production minimum duration, pause/resume/stop, force-close/reopen and confirm conservative recovery. Both main suggested interfaces now have working implementations; Windows implementation is still pending.
+Checks: valid/invalid transitions, fractions and paused time, duplicate prevention, wall-clock changes, long tick gaps, failed saves/retry, close and crash recovery, migration/JSON compatibility, persistent reload, zone-aware statistics, actual JavaFX controls and a real 10-second run. All 679 tests pass with optional UI/real-time checks enabled.
+
+The original plan's focus/break cycles, paging/date filters and active blocker simulation integration are deferred to separately authorized work. This milestone does not implement Windows enforcement or rewards. M4 remains future scope except the basic Dashboard summaries explicitly brought forward by the current request.
 
 ## M4 — Tasks, goals and useful statistics
 

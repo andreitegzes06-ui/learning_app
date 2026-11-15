@@ -1,0 +1,10 @@
+ALTER TABLE study_session ADD COLUMN classroom_id TEXT REFERENCES classroom(id) ON DELETE RESTRICT;
+ALTER TABLE study_session ADD COLUMN goal_id TEXT REFERENCES study_goal(id) ON DELETE RESTRICT;
+ALTER TABLE study_session ADD COLUMN classroom_name TEXT NOT NULL DEFAULT '' CHECK(length(classroom_name)<=100);
+ALTER TABLE study_session ADD COLUMN goal_name TEXT NOT NULL DEFAULT '' CHECK(length(goal_name)<=200);
+ALTER TABLE study_session ADD COLUMN planned_seconds INTEGER NOT NULL DEFAULT 0 CHECK(planned_seconds BETWEEN 0 AND 14400);
+ALTER TABLE study_session ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0 CHECK(is_demo IN (0,1));
+ALTER TABLE study_session ADD COLUMN checkpoint_at TEXT NOT NULL DEFAULT '1970-01-01T00:00:00Z';
+UPDATE study_session SET checkpoint_at=COALESCE(ended_at,started_at);
+CREATE INDEX session_classroom ON study_session(classroom_id);
+CREATE INDEX session_goal ON study_session(goal_id);

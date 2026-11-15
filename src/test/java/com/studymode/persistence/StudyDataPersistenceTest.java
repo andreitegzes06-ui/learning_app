@@ -95,12 +95,16 @@ class StudyDataPersistenceTest {
         var profile = new com.studymode.domain.profile.UserProfile(UUID.randomUUID(), "Existing", StudyDataFixture.NOW, java.time.ZoneOffset.UTC);
         new SqliteUserProfileStore(db).save(profile);
         var session = new com.studymode.domain.study.StudySession(UUID.randomUUID(), profile.id(), StudyDataFixture.NOW.minusSeconds(60), StudyDataFixture.NOW, 60, profile.studyZone(), com.studymode.domain.study.SessionStatus.COMPLETED);
-        new SqliteStudySessionLedger(db).save(session);
+        try (var c = db.open(); var insert = c.prepareStatement("INSERT INTO study_session VALUES (?,?,?,?,?,?,?)")) {
+            insert.setString(1,session.id().toString()); insert.setString(2,profile.id().toString());
+            insert.setString(3,session.startedAt().toString()); insert.setString(4,session.endedAt().toString());
+            insert.setLong(5,60); insert.setString(6,profile.studyZone().getId()); insert.setString(7,"COMPLETED"); insert.executeUpdate();
+        }
         new SchemaMigrator(db).migrate(); new SchemaMigrator(db).migrate();
         assertEquals(profile, new SqliteUserProfileStore(db).findLocalProfile().orElseThrow());
         assertEquals(session, new SqliteStudySessionLedger(db).find(session.id()).orElseThrow());
         assertTrue(new SqliteClassroomCatalog(db).findAll().isEmpty());
-        try (var c = db.open(); var s = c.createStatement(); var rows = s.executeQuery("SELECT count(*) FROM schema_version")) { rows.next(); assertEquals(2, rows.getInt(1)); }
+        try (var c = db.open(); var s = c.createStatement(); var rows = s.executeQuery("SELECT count(*) FROM schema_version")) { rows.next(); assertEquals(3, rows.getInt(1)); }
     }
     @Test void failedV2MigrationRollsBackAndLeavesV1Untouched() throws Exception {
         var db = database();

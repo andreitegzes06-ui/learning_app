@@ -5,6 +5,7 @@ import java.util.Arrays;
 public enum NavigationPage {
     DASHBOARD("dashboard", "Dashboard", "Your study space, ready when you are.", 1),
     FOCUS("focus", "Focus Session", "One session. One clear intention.", 3),
+    HISTORY("history", "Session History", "Your actual focus time, saved on this computer.", 3),
     CLASSROOMS("classrooms", "Classrooms", "Give every subject a home.", 2),
     WORKSPACES("workspaces", "Workspaces", "A familiar setup for your next study session.", 2),
     BLOCKED("blocked", "Blocked Applications", "Make room for fewer distractions.", 5),

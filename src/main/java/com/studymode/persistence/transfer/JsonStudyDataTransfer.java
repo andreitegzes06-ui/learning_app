@@ -64,6 +64,15 @@ public final class JsonStudyDataTransfer implements StudyDataTransfer {
         try {
             JsonNode document = mapper.readTree(bytes);
             structureValidator.validate(document);
+            if (document.get("formatVersion").intValue() == 1) {
+                // Upgrade only after strict legacy validation; the new fields are trusted defaults, not user coercions.
+                for (JsonNode session : document.get("sessions")) {
+                    var record = (com.fasterxml.jackson.databind.node.ObjectNode) session;
+                    record.set("context", mapper.valueToTree(com.studymode.domain.study.SessionContext.legacy()));
+                    record.set("checkpointAt", record.get("endedAt").isNull() ? record.get("startedAt") : record.get("endedAt"));
+                }
+                ((com.fasterxml.jackson.databind.node.ObjectNode) document).put("formatVersion", 2);
+            }
             StudyDataSnapshot snapshot = mapper.treeToValue(document, StudyDataSnapshot.class);
             validator.validate(snapshot); return snapshot;
         } catch (JsonMappingException e) {

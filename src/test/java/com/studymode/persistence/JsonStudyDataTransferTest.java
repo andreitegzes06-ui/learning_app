@@ -44,7 +44,7 @@ class JsonStudyDataTransferTest {
     }
     @Test void rejectsMalformedUnknownDuplicateAndWrongTypedFieldsBeforeMutation() throws Exception {
         String valid = Files.readString(export);
-        List<String> invalid = List.of("{", "null", valid + " {}", valid.replace("\"formatVersion\" : 1", "\"formatVersion\" : 99"),
+        List<String> invalid = List.of("{", "null", valid + " {}", valid.replace("\"formatVersion\" : 2", "\"formatVersion\" : 99"),
                 valid.replaceFirst("\\{", "{\"unknownField\":true,"), valid.replaceFirst("\\{", "{\"formatVersion\":1,"),
                 valid.replace("\"targetMinutes\" : 30", "\"targetMinutes\" : 0"),
                 valid.replace("\"targetMinutes\" : 30", "\"targetMinutes\" : \"30\""),

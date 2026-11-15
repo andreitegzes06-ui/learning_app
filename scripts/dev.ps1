@@ -1,8 +1,10 @@
 param(
     [ValidateSet('build', 'run', 'ui-test')][string]$Task = 'run',
     [switch]$IncludeUiTests,
+    [switch]$Demo,
+    [switch]$RealDemoTest,
     [string]$DataDirectory,
-    [ValidateSet('dashboard','focus','classrooms','workspaces','blocked','goals','statistics','achievements','settings')]
+    [ValidateSet('dashboard','focus','history','classrooms','workspaces','blocked','goals','statistics','achievements','settings')]
     [string]$StartPage = 'dashboard'
 )
 $ErrorActionPreference = 'Stop'
@@ -20,6 +22,7 @@ try {
     $env:MAVEN_USER_HOME = Join-Path $projectRoot '.tools/wrapper-cache'
     $mavenArguments = @('--batch-mode', '--no-transfer-progress', '-Dmaven.repo.local=.tools/m2')
     if ($IncludeUiTests) { $mavenArguments += '-Dstudymode.ui.tests=true' }
+    if ($RealDemoTest) { $mavenArguments += '-Dstudymode.real.demo=true' }
     switch ($Task) {
         'build' {
             # Native removal handles read-only OneDrive directory attributes which Maven clean cannot remove here.
@@ -35,6 +38,7 @@ try {
         'ui-test' { $mavenArguments += @('-Dstudymode.ui.tests=true', 'verify') }
         'run' {
             $launchOptions = '--start-page=' + $StartPage
+            if ($Demo) { $launchOptions += ' --demo=true' }
             if ($DataDirectory) {
                 $absoluteData = [System.IO.Path]::GetFullPath($DataDirectory)
                 if ($absoluteData.Contains('"')) { throw 'Data directory cannot contain a quote.' }

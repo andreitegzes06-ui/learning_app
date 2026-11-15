@@ -9,7 +9,7 @@ import java.util.function.Function;
 public final class SnapshotValidator {
     public void validate(StudyDataSnapshot data) {
         try {
-            if (data.formatVersion() != 1) reject("Unsupported JSON format version: " + data.formatVersion());
+            if (data.formatVersion() != 1 && data.formatVersion() != 2) reject("Unsupported JSON format version: " + data.formatVersion());
             if (data.recordCount() > 100_000) reject("Import exceeds the 100,000-record limit.");
             if (data.profiles().size() > 1) reject("Only one local profile is supported per data directory.");
             Set<UUID> profiles = unique(data.profiles(), p -> p.id(), "profile");
@@ -24,6 +24,8 @@ public final class SnapshotValidator {
             Set<UUID> unfinished = new HashSet<>();
             for (var session : data.sessions()) {
                 reference(profiles, session.profileId(), "session profile");
+                if (session.context().classroomId() != null) reference(classrooms, session.context().classroomId(), "session classroom");
+                if (session.context().goalId() != null) reference(goals, session.context().goalId(), "session goal");
                 if (!session.finished() && !unfinished.add(session.profileId())) reject("A profile has more than one unfinished session.");
             }
             data.goals().forEach(g -> reference(profiles, g.profileId(), "goal profile"));

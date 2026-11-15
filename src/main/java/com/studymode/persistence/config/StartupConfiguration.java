@@ -2,7 +2,10 @@ package com.studymode.persistence.config;
 
 import java.nio.file.Path;
 
-public record StartupConfiguration(Path dataDirectory, String startPage, int windowWidth, int windowHeight) {
+public record StartupConfiguration(Path dataDirectory, String startPage, int windowWidth, int windowHeight, boolean demoMode) {
+    public StartupConfiguration(Path dataDirectory, String startPage, int windowWidth, int windowHeight) {
+        this(dataDirectory, startPage, windowWidth, windowHeight, false);
+    }
     public StartupConfiguration {
         com.studymode.domain.Validation.required(dataDirectory, "Data directory");
         com.studymode.domain.Validation.required(startPage, "Start page");

@@ -6,6 +6,11 @@ import com.studymode.application.port.ClassroomCatalog;
 import com.studymode.application.port.StudyDataTransfer;
 import com.studymode.ui.controller.ClassroomController;
 import com.studymode.ui.controller.DataTransferController;
+import com.studymode.ui.controller.FocusSessionController;
+import com.studymode.ui.controller.StudyHistoryController;
+import com.studymode.ui.controller.DashboardController;
+import com.studymode.application.service.FocusSessionService;
+import com.studymode.application.service.StudyStatisticsService;
 import com.studymode.domain.profile.UserProfile;
 import com.studymode.persistence.config.StartupConfiguration;
 import com.studymode.persistence.config.StartupConfigurationLoader;
@@ -22,14 +27,16 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import static com.studymode.ui.view.ViewComponents.*;
 
-public final class AppShell extends BorderPane {
+public final class AppShell extends BorderPane implements AutoCloseable {
     private final Map<NavigationPage, ToggleButton> navigation = new EnumMap<>(NavigationPage.class);
     private final ProfileController profileController;
     private final StartupConfiguration config;
     private final StartupConfigurationLoader configurationLoader;
     private final ExecutorService io;
     private final DistractionBlocker blocker;
-    private int savedSessionCount;
+    private final FocusSessionController focusController;
+    private final DashboardController dashboardController;
+    private final StudyHistoryController historyController;
     private final ClassroomController classroomController;
     private final DataTransferController dataTransferController;
     private final Label profileCaption = text("", "muted");
@@ -38,15 +45,19 @@ public final class AppShell extends BorderPane {
 
     public AppShell(ProfileService service, ExecutorService io, Optional<UserProfile> profile,
                     StartupConfiguration config, StartupConfigurationLoader configurationLoader,
-                    DistractionBlocker blocker, int savedSessionCount, ClassroomCatalog classroomCatalog, StudyDataTransfer dataTransfer) {
+                    DistractionBlocker blocker, ClassroomCatalog classroomCatalog, StudyDataTransfer dataTransfer,
+                    FocusSessionService focusSessions, StudyStatisticsService statistics) {
         this.profile = profile; this.config = config; this.configurationLoader = configurationLoader; this.io = io;
-        this.blocker = blocker; this.savedSessionCount = savedSessionCount;
+        this.blocker = blocker;
+        dashboardController = new DashboardController(statistics,service,io);
+        historyController = new StudyHistoryController(statistics,service,io);
+        focusController = new FocusSessionController(focusSessions,io,config.demoMode(),this::refreshSessionViews,() -> navigate(NavigationPage.SETTINGS));
         classroomController = new ClassroomController(classroomCatalog, io);
         profileController = new ProfileController(service, io, profile, saved -> {
             this.profile = Optional.of(saved); updateProfileCaption();
         });
         dataTransferController = new DataTransferController(dataTransfer, io, imported -> {
-            this.profile = imported.profiles().stream().findFirst(); this.savedSessionCount = imported.sessions().size();
+            this.profile = imported.profiles().stream().findFirst(); focusController.resetAfterImport();
             profileController.reload(this.profile); updateProfileCaption();
         }, this::setDisable);
         getStyleClass().add("app-shell");
@@ -65,7 +76,7 @@ public final class AppShell extends BorderPane {
         }
         VBox brand = new VBox(5, text("STUDY MODE", "brand"), text("Space to do your best work", "sidebar-subtitle"));
         Region spacer = new Region(); VBox.setVgrow(spacer, Priority.ALWAYS);
-        VBox bar = new VBox(24, brand, items, spacer, text("MILESTONE 2 · LOCAL DATA", "sidebar-subtitle"), profileCaption);
+        VBox bar = new VBox(24, brand, items, spacer, text(config.demoMode() ? "DEMO / TEST MODE" : "STUDY MODE · FOCUS", "sidebar-subtitle"), profileCaption);
         bar.getStyleClass().add("sidebar"); bar.setPrefWidth(242); bar.setMinWidth(210);
         ScrollPane scroll = new ScrollPane(bar); scroll.setFitToWidth(true); scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.getStyleClass().add("sidebar-scroll"); scroll.setPrefWidth(242);
@@ -79,6 +90,8 @@ public final class AppShell extends BorderPane {
             case DASHBOARD -> dashboard();
             case SETTINGS -> settings();
             case CLASSROOMS -> { classroomController.refresh(); yield classroomController.view(); }
+            case FOCUS -> { focusController.refresh(); yield focusController.view(); }
+            case HISTORY -> { historyController.refresh(); yield historyController.view(); }
             default -> new MilestoneInfoView(page);
         };
         VBox body = new VBox(28, header, content); body.setPadding(new Insets(36)); body.setMaxWidth(1100);
@@ -87,6 +100,7 @@ public final class AppShell extends BorderPane {
     }
 
     private Node dashboard() {
+        dashboardController.refresh();
         String greeting = profile.map(p -> "Welcome back, " + p.displayName()).orElse("Welcome to Study Mode");
         Button edit = new Button(profile.isPresent() ? "Edit profile" : "Create profile");
         edit.getStyleClass().add("primary-button"); edit.setOnAction(event -> navigate(NavigationPage.SETTINGS));
@@ -98,7 +112,7 @@ public final class AppShell extends BorderPane {
         VBox safety = card(text("DISTRACTION BLOCKING", "eyebrow"), text(blocker.isRunning() ? "Simulation active" : "Inactive", "card-value"), text("Simulation adapter only · no processes modified", "muted"));
         identity.setPrefWidth(330); safety.setPrefWidth(330); cards.getChildren().addAll(identity, safety);
         return new VBox(22, welcome, cards,
-                card(text("Build your study routine", "section-title"), text("Saved session records: " + savedSessionCount + ". Session recording is planned for milestone 3. No sample sessions or rewards are generated by this foundation.", "muted")),
+                dashboardController.view(),
                 text("Browse the sidebar to see each feature’s implementation status.", "muted"));
     }
 
@@ -126,4 +140,10 @@ public final class AppShell extends BorderPane {
 
     private void updateProfileCaption() { profileCaption.setText(profile.map(p -> "Local profile\n" + p.displayName()).orElse("No profile yet")); }
     public NavigationPage currentPage() { return current; }
+    private void refreshSessionViews() {
+        if (current == NavigationPage.DASHBOARD) dashboardController.refresh();
+        if (current == NavigationPage.HISTORY) historyController.refresh();
+    }
+    public void requestClose(Runnable exit) { focusController.requestClose(exit,this::setDisable); }
+    @Override public void close() { focusController.close(); }
 }

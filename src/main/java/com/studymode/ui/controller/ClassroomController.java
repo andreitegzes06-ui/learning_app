@@ -40,7 +40,7 @@ public final class ClassroomController {
         save.setId("save-classroom"); save.getStyleClass().add("primary-button"); save.setOnAction(event -> save());
         delete.setOnAction(event -> {
             if (selected == null || busy) return;
-            Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Delete “" + selected.name() + "”? Its resources will be removed and tasks will lose their classroom link. Referencing workspaces must be removed first.", ButtonType.CANCEL, ButtonType.OK);
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Delete “" + selected.name() + "”? Its resources will be removed and tasks will lose their classroom link. Referencing workspaces or recorded sessions prevent deletion.", ButtonType.CANCEL, ButtonType.OK);
             alert.initOwner(view().getScene().getWindow()); alert.setHeaderText("Delete classroom");
             if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) removeSelected();
         });
