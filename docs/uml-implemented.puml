@@ -217,6 +217,7 @@ package "M2 persistence and transfer adapters" {
   interface SqlOperation <<nested>>
   interface RowReader <<nested>>
   class JsonStudyDataTransfer
+  class StudyJsonStructureValidator
 }
 package "M2 UI controllers" {
   class ClassroomController
@@ -253,6 +254,9 @@ SqliteStudyDataArchive ..> StudyDataSnapshot
 SqliteStudyDataArchive ..> SnapshotValidator
 JsonStudyDataTransfer --> StudyDataArchive
 JsonStudyDataTransfer --> SnapshotValidator
+JsonStudyDataTransfer --> StudyJsonStructureValidator : checks raw JSON before binding
+StudyJsonStructureValidator ..> StudyDataSnapshot : reads record type metadata
+StudyJsonStructureValidator ..> DataImportException
 JsonStudyDataTransfer ..> DataImportException
 SnapshotValidator ..> DataImportException
 SnapshotValidator ..> StudyDataSnapshot

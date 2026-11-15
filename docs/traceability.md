@@ -2,6 +2,18 @@
 
 Status on 15 November 2026: M2 persistence implemented. `[x]` means verified for the stated scope; `[ ]` or partial means remaining work is pending. Stored facts do not imply completed workflow engines. Evidence: [M2 verification](verification/m2.md), [persistence contract](persistence-m2.md), [actual-code UML](uml-implemented.puml). Historical M1 evidence remains in its report.
 
+## Post-audit JSON validation correction
+
+- [x] Numeric/boolean-to-text coercion defect fixed, including `displayName: 123` and `displayName: true`.
+- [x] Entire JSON structure checked before domain binding: exact object properties, array/element shapes, string types, integer ranges, missing values and required null rejection.
+- [x] Unknown boolean flags/string flags rejected; format 1 declares no boolean properties. Nullable fields and legitimate empty/numeric-looking text retain compatibility.
+- [x] Empty strings cannot silently become null optional IDs/dates; fractional/overflow integer tokens, enum ordinals and scalar-to-array coercion are rejected.
+- [x] Field-specific validation errors flow through existing import feedback; replacement does not start for invalid input.
+- [x] All 597 tests pass, including 549 new regression cases, the previous 48 tests and actual JavaFX regression. Rejected-import cases verify unchanged snapshot and database bytes, with no backup/replacement side effects.
+- [x] Current-code UML updated for the added transfer-boundary validator. No later feature milestone implemented.
+
+See [validation correction verification](verification/json-validation.md). Validation of future feature inputs and Windows executable identity/safety remains part of their implementation milestones; this fix concerns the current JSON format.
+
 ## M2 requirements and acceptance
 
 - [x] R1/R4/R11: first-start database and writable directory creation; V001/V002 initialization and versioned transactional migrations.

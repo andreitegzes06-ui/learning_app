@@ -63,7 +63,7 @@ Properties files support start-page, blocker and window dimensions. Precedence: 
 .\mvnw.cmd '-Dstudymode.ui.tests=true' verify
 ```
 
-The suite tests domain/configuration validation, entity CRUD and reopen, migration preservation/rollback, SQL constraints, consistent snapshots, full JSON round trips, invalid/oversized imports, backup failure and SQL-failure rollback. The opt-in JavaFX test exercises nine destinations, profile creation/editing, classroom persistence, readable save errors, JSON export/error feedback, resizing and preferences. Tests use temporary data directories. The M2 suite has **48 tests with UI enabled**; ordinary runs intentionally skip the one GUI test.
+The suite tests domain/configuration validation, entity CRUD and reopen, migration preservation/rollback, SQL constraints, consistent snapshots, full JSON round trips, invalid/oversized imports, backup failure and SQL-failure rollback. The opt-in JavaFX test exercises nine destinations, profile creation/editing, classroom persistence, readable save errors, JSON export/error feedback, resizing and preferences. Tests use temporary data directories. After the audit validation fix, the suite has **597 tests with UI enabled** (the original 48 plus 549 new type/structure regression cases); ordinary runs intentionally skip the one GUI test. See [validation verification](docs/verification/json-validation.md).
 
 | Location | Responsibility |
 | --- | --- |

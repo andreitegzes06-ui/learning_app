@@ -3,6 +3,9 @@ package com.studymode.persistence.transfer;
 import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.cfg.CoercionAction;
+import com.fasterxml.jackson.databind.cfg.CoercionInputShape;
+import com.fasterxml.jackson.databind.type.LogicalType;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.studymode.application.data.*;
 import com.studymode.application.error.DataImportException;
@@ -16,6 +19,7 @@ public final class JsonStudyDataTransfer implements StudyDataTransfer {
     private final StudyDataArchive archive;
     private final Path dataRoot;
     private final SnapshotValidator validator = new SnapshotValidator();
+    private final StudyJsonStructureValidator structureValidator = new StudyJsonStructureValidator();
     private final ObjectMapper mapper;
 
     public JsonStudyDataTransfer(StudyDataArchive archive, Path dataRoot) {
@@ -25,9 +29,26 @@ public final class JsonStudyDataTransfer implements StudyDataTransfer {
         mapper = JsonMapper.builder(factory).addModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
                 .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT).disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
+                .disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS,
+                        DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT)
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES,
-                        DeserializationFeature.FAIL_ON_TRAILING_TOKENS, DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES)
+                        DeserializationFeature.FAIL_ON_TRAILING_TOKENS, DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES,
+                        DeserializationFeature.FAIL_ON_NUMBERS_FOR_ENUMS)
                 .build();
+        // Empty text is valid as text (for example an optional description), but must never become null for an ID/date/object.
+        mapper.coercionConfigDefaults().setCoercion(CoercionInputShape.EmptyString, CoercionAction.Fail)
+                .setCoercion(CoercionInputShape.EmptyArray, CoercionAction.Fail)
+                .setCoercion(CoercionInputShape.EmptyObject, CoercionAction.Fail);
+        rejectCoercions(LogicalType.Textual, CoercionInputShape.Integer, CoercionInputShape.Float, CoercionInputShape.Boolean);
+        rejectCoercions(LogicalType.Integer, CoercionInputShape.String, CoercionInputShape.EmptyString,
+                CoercionInputShape.Float, CoercionInputShape.Boolean);
+        rejectCoercions(LogicalType.Boolean, CoercionInputShape.String, CoercionInputShape.EmptyString,
+                CoercionInputShape.Integer, CoercionInputShape.Float);
+        rejectCoercions(LogicalType.DateTime, CoercionInputShape.Integer, CoercionInputShape.Float,
+                CoercionInputShape.Boolean, CoercionInputShape.EmptyString, CoercionInputShape.Array);
+    }
+    private void rejectCoercions(LogicalType target, CoercionInputShape... inputs) {
+        for (CoercionInputShape input : inputs) mapper.coercionConfigFor(target).setCoercion(input, CoercionAction.Fail);
     }
     @Override public void exportTo(Path file) throws IOException {
         Path target = file.toAbsolutePath().normalize();
@@ -41,9 +62,17 @@ public final class JsonStudyDataTransfer implements StudyDataTransfer {
         try (InputStream input = Files.newInputStream(file)) { bytes = input.readNBytes(MAX_BYTES + 1); }
         if (bytes.length > MAX_BYTES) throw new DataImportException("Import exceeds the 20 MiB limit.");
         try {
-            StudyDataSnapshot snapshot = mapper.readValue(bytes, StudyDataSnapshot.class);
-            if (snapshot == null) throw new DataImportException("Import must contain a study data object.");
+            JsonNode document = mapper.readTree(bytes);
+            structureValidator.validate(document);
+            StudyDataSnapshot snapshot = mapper.treeToValue(document, StudyDataSnapshot.class);
             validator.validate(snapshot); return snapshot;
+        } catch (JsonMappingException e) {
+            StringBuilder path = new StringBuilder("$");
+            for (JsonMappingException.Reference reference : e.getPath()) {
+                if (reference.getFieldName() != null) path.append('.').append(reference.getFieldName());
+                else if (reference.getIndex() >= 0) path.append('[').append(reference.getIndex()).append(']');
+            }
+            throw new DataImportException("Invalid study JSON at " + path + ": invalid value, date, identifier or required property. No records were changed.", e);
         } catch (JsonProcessingException | IllegalArgumentException | NullPointerException e) {
             throw new DataImportException("Invalid study JSON. Check its fields, types, dates, IDs and format version. No records were changed.", e);
         }
