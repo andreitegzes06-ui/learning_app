@@ -1,0 +1,220 @@
+@startuml
+title Study Mode - PLANNED target architecture (M0: no implemented classes)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+left to right direction
+
+package "Domain (no infrastructure dependencies)" {
+  class UserProfile {
+    id : UUID
+    displayName : String
+    studyZone : ZoneId
+  }
+  class Classroom {
+    id : UUID
+    resources : List<StudyResource>
+  }
+  class StudyResource {
+    title : String
+    uri : URI
+  }
+  class FocusWorkspace {
+    classroomId : UUID
+    resourceIds : Set<UUID>
+    blocklist : Set<BlockedApplication>
+  }
+  class FocusPreferences {
+    focusDuration : Duration
+    shortBreak : Duration
+    longBreak : Duration
+    longBreakEvery : int
+  }
+  class BlockedApplication {
+    canonicalExecutablePath : Path
+  }
+  class StudySession {
+    id : UUID
+    activeFocusSeconds : long
+    status : SessionStatus
+    studyZone : ZoneId
+  }
+  enum SessionStatus {
+    ACTIVE
+    PAUSED
+    COMPLETED
+    INTERRUPTED
+  }
+  class FocusCycle {
+    phase : CyclePhase
+    pause()
+    resume()
+    stop()
+  }
+  enum CyclePhase {
+    IDLE
+    FOCUS
+    READY_FOR_BREAK
+    BREAK
+    READY_FOR_FOCUS
+  }
+  class StudyGoal
+  class StudyTask
+  class Achievement
+  class AchievementAward
+  class RewardPolicy
+}
+
+package "Application ports" {
+  interface UserProfileStore {
+    findLocalProfile() : Optional<UserProfile>
+    save(profile : UserProfile)
+  }
+  interface StudySessionLedger {
+    begin(session : StudySession)
+    checkpoint(session : StudySession)
+    finish(session : StudySession)
+    findByPeriod() : List<StudySession>
+  }
+  interface DistractionBlocker {
+    start(targets : Set<BlockedApplication>)
+    stop()
+  }
+  interface ClassroomCatalog
+  interface FocusWorkspaceStore
+  interface StudyPlanStore
+  interface RewardStore
+  interface StudyDataTransfer {
+    inspectImport()
+    exportSnapshot()
+    replaceFromValidatedSnapshot()
+  }
+}
+
+package "Application services" {
+  class ProfileService
+  class ClassroomService
+  class WorkspaceService
+  class FocusSessionService
+  class StudyPlanningService
+  class StudyStatisticsService
+  class RewardService
+}
+
+package "Application errors" {
+  class StudyDataException <<custom exception>>
+  class FocusModeException <<custom exception>>
+  class DataImportException <<custom exception>>
+}
+
+package "Infrastructure" {
+  class SqliteDatabase
+  class SchemaMigrator
+  class SqliteUserProfileStore
+  class SqliteStudySessionLedger
+  class SqliteClassroomCatalog
+  class SqliteFocusWorkspaceStore
+  class SqliteStudyPlanStore
+  class SqliteRewardStore
+  class WindowsDistractionBlocker
+  class WindowsProcessGateway
+  class ProcessSafetyPolicy
+  class SimulatedDistractionBlocker
+  class JsonStudyDataTransfer
+  class StartupConfiguration
+  class StartupConfigurationLoader
+}
+
+package "JavaFX / bootstrap" {
+  class StudyModeLauncher
+  class StudyModeApplication
+  class AppShell
+  class ProfileController
+  class FocusController
+}
+
+Classroom "1" *-- "0..*" StudyResource
+FocusWorkspace "0..*" --> "1" Classroom : references by UUID
+FocusWorkspace "1" *-- "1" FocusPreferences
+FocusWorkspace "0..*" --> "0..*" StudyResource : selected UUIDs
+FocusWorkspace "0..*" o-- "0..*" BlockedApplication
+UserProfile "1" <-- "0..*" StudySession : profile UUID
+StudySession "0..*" --> "0..1" Classroom : optional reference + snapshot
+StudySession "0..*" --> "0..1" FocusWorkspace : optional reference + snapshot
+StudySession --> SessionStatus
+FocusCycle --> CyclePhase
+FocusCycle --> FocusPreferences
+StudyGoal "0..*" --> "1" UserProfile
+StudyTask "0..*" --> "1" UserProfile
+StudyGoal "0..*" --> "0..1" Classroom
+StudyTask "0..*" --> "0..1" Classroom
+StudyTask "0..*" --> "0..1" StudyGoal
+AchievementAward "0..*" --> "1" Achievement
+AchievementAward "0..*" --> "1" UserProfile
+RewardPolicy ..> StudySession
+
+UserProfileStore <|.. SqliteUserProfileStore
+StudySessionLedger <|.. SqliteStudySessionLedger
+ClassroomCatalog <|.. SqliteClassroomCatalog
+FocusWorkspaceStore <|.. SqliteFocusWorkspaceStore
+StudyPlanStore <|.. SqliteStudyPlanStore
+RewardStore <|.. SqliteRewardStore
+DistractionBlocker <|.. WindowsDistractionBlocker
+DistractionBlocker <|.. SimulatedDistractionBlocker
+StudyDataTransfer <|.. JsonStudyDataTransfer
+SqliteUserProfileStore --> SqliteDatabase
+SqliteStudySessionLedger --> SqliteDatabase
+SqliteClassroomCatalog --> SqliteDatabase
+SqliteFocusWorkspaceStore --> SqliteDatabase
+SqliteStudyPlanStore --> SqliteDatabase
+SqliteRewardStore --> SqliteDatabase
+SchemaMigrator --> SqliteDatabase
+JsonStudyDataTransfer --> SqliteDatabase : consistent snapshot / replacement transaction
+WindowsDistractionBlocker --> WindowsProcessGateway
+WindowsDistractionBlocker --> ProcessSafetyPolicy
+ProcessSafetyPolicy ..> BlockedApplication
+StartupConfigurationLoader ..> StartupConfiguration : validates / creates
+
+ProfileService --> UserProfileStore
+ClassroomService --> ClassroomCatalog
+WorkspaceService --> FocusWorkspaceStore
+WorkspaceService --> ClassroomCatalog
+FocusSessionService --> StudySessionLedger
+FocusSessionService --> DistractionBlocker
+FocusSessionService --> WorkspaceService
+FocusSessionService --> FocusCycle
+StudyPlanningService --> StudyPlanStore
+StudyPlanningService --> StudySessionLedger
+StudyStatisticsService --> StudySessionLedger
+RewardService --> RewardStore
+RewardService --> StudySessionLedger
+RewardService --> RewardPolicy
+FocusSessionService --> RewardService : after committed focus
+ProfileService ..> StudyDataException
+FocusSessionService ..> FocusModeException
+JsonStudyDataTransfer ..> DataImportException
+SqliteDatabase ..> StudyDataException
+
+StudyModeLauncher ..> StudyModeApplication : launches
+StudyModeApplication ..> StartupConfigurationLoader
+StudyModeApplication ..> SchemaMigrator
+StudyModeApplication ..> AppShell : composes and owns lifecycle
+StudyModeApplication ..> ProfileService : wires
+StudyModeApplication ..> FocusSessionService : wires
+AppShell --> ProfileController
+AppShell --> FocusController
+ProfileController --> ProfileService
+FocusController --> FocusSessionService
+
+note bottom of FocusSessionService
+  Clock, monotonic ticker and scheduler are injected.
+  Stop disables enforcement before persistence.
+  UI receives immutable state on the FX thread.
+end note
+note bottom of StudyModeApplication
+  Composition root wires all feature services/adapters.
+  Remaining feature controllers omitted for readability.
+  No classes here are implemented at M0.
+  Add a separate actual-code UML starting in M1.
+end note
+@enduml

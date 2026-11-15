@@ -1,0 +1,13 @@
+/target/
+/.tools/
+/.m2/
+/.run/
+/.idea/
+*.iml
+*.db
+*.db-shm
+*.db-wal
+*.log
+/settings.properties
+/exports/
+/.mvn/wrapper/maven-wrapper.jar

@@ -1,0 +1,197 @@
+@startuml
+title Study Mode - implemented M1 classes (15 November 2026)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+left to right direction
+
+package "domain (models)" {
+  class Validation <<utility>>
+  class UserProfile <<record>> {
+    id : UUID
+    displayName : String
+    createdAt : Instant
+    studyZone : ZoneId
+    withDetails(name, zone) : UserProfile
+  }
+  class StudyResource <<record>> {
+    id : UUID
+    uri : URI
+    fromUrl(id, title, url) : StudyResource
+  }
+  class Classroom <<record>> {
+    resources : List<StudyResource>
+  }
+  class FocusWorkspace <<record>> {
+    classroomId : UUID
+    resourceIds : Set<UUID>
+    blocklist : Set<BlockedApplication>
+    validateAgainst(classroom)
+  }
+  class FocusPreferences <<record>>
+  class BlockedApplication {
+    executablePath : Path
+    equals(other) : boolean
+    hashCode() : int
+  }
+  class StudySession <<record>> {
+    profileId : UUID
+    startedAt : Instant
+    endedAt : Instant
+    activeFocusSeconds : long
+    status : SessionStatus
+    finished() : boolean
+  }
+  enum SessionStatus {
+    ACTIVE
+    PAUSED
+    COMPLETED
+    INTERRUPTED
+  }
+  class StudyGoal <<record>>
+  enum GoalPeriod {
+    DAILY
+    WEEKLY
+  }
+  class StudyTask <<record>> {
+    complete(at) : StudyTask
+  }
+  class Achievement <<record>>
+  class AchievementAward <<record>> {
+    achievementCode : String
+  }
+}
+package "application.port" {
+  interface UserProfileStore {
+    findLocalProfile() : Optional<UserProfile>
+    save(profile)
+  }
+  interface StudySessionLedger {
+    save(session)
+    findByPeriod(from, to) : List<StudySession>
+  }
+  interface DistractionBlocker {
+    start(targets : Set<BlockedApplication>)
+    stop()
+    isRunning() : boolean
+    selectedTargets() : Set<BlockedApplication>
+    events() : List<String>
+  }
+}
+package "application.service / application.error" {
+  class ProfileService {
+    load() : Optional<UserProfile>
+    saveDetails(name, zone) : UserProfile
+  }
+  class StudyDataException <<custom runtime exception>>
+  class FocusModeException <<custom runtime exception>>
+}
+package "persistence.sqlite" {
+  class SqliteDatabase {
+    open() : Connection
+  }
+  class SchemaMigrator {
+    migrate()
+  }
+  class SqliteUserProfileStore
+  class SqliteStudySessionLedger
+}
+package "persistence.config" {
+  class StartupConfiguration <<record>>
+  class StartupConfigurationLoader {
+    load(arguments, environment) : StartupConfiguration
+    saveWindowPreferences(root, width, height)
+  }
+  class DataDirectoryLock {
+    acquire(root) : DataDirectoryLock
+    close()
+  }
+}
+package "platform.simulation" {
+  class SimulatedDistractionBlocker
+}
+package "ui / ui.view / ui.controller" {
+  class AppShell
+  enum NavigationPage
+  class ProfileController
+  class MilestoneInfoView
+  class ViewComponents <<utility>>
+}
+package "bootstrap" {
+  class StudyModeLauncher
+  class StudyModeApplication
+}
+
+Classroom "1" o-- "0..*" StudyResource : immutable list
+FocusWorkspace "1" --> "1" FocusPreferences
+FocusWorkspace "0..*" o-- "0..*" BlockedApplication : immutable set
+FocusWorkspace ..> Classroom : validates ID and resource membership
+FocusWorkspace ..> StudyResource : selected IDs
+StudySession --> SessionStatus
+StudySession "0..*" ..> "1" UserProfile : profile UUID; database FK
+StudyGoal --> GoalPeriod
+StudyGoal ..> UserProfile : profile UUID
+StudyTask ..> UserProfile : profile UUID
+StudyTask ..> Classroom : optional UUID
+StudyTask ..> StudyGoal : optional UUID
+AchievementAward ..> UserProfile : profile UUID
+AchievementAward ..> Achievement : achievement code
+UserProfile ..> Validation
+Classroom ..> Validation
+StudyResource ..> Validation
+FocusWorkspace ..> Validation
+FocusPreferences ..> Validation
+BlockedApplication ..> Validation
+StudySession ..> Validation
+StudyGoal ..> Validation
+StudyTask ..> Validation
+Achievement ..> Validation
+AchievementAward ..> Validation
+
+UserProfileStore <|.. SqliteUserProfileStore
+StudySessionLedger <|.. SqliteStudySessionLedger
+DistractionBlocker <|.. SimulatedDistractionBlocker
+ProfileService --> UserProfileStore
+ProfileService ..> UserProfile
+SqliteUserProfileStore --> SqliteDatabase
+SqliteStudySessionLedger --> SqliteDatabase
+SchemaMigrator --> SqliteDatabase
+SqliteDatabase ..> StudyDataException : translates failures
+SqliteUserProfileStore ..> StudyDataException
+SqliteStudySessionLedger ..> StudyDataException
+SimulatedDistractionBlocker ..> FocusModeException
+SimulatedDistractionBlocker o-- BlockedApplication
+StartupConfigurationLoader ..> StartupConfiguration
+StartupConfiguration ..> Validation
+
+StudyModeLauncher ..> StudyModeApplication : launches
+StudyModeApplication --> DataDirectoryLock
+StudyModeApplication --> DistractionBlocker
+StudyModeApplication ..> SimulatedDistractionBlocker : constructs
+StudyModeApplication ..> StudySessionLedger
+StudyModeApplication ..> SqliteStudySessionLedger : constructs / reads
+StudyModeApplication ..> SqliteUserProfileStore : constructs
+StudyModeApplication ..> SqliteDatabase : constructs
+StudyModeApplication ..> SchemaMigrator
+StudyModeApplication ..> ProfileService : wires
+StudyModeApplication --> StartupConfigurationLoader
+StudyModeApplication ..> AppShell : constructs
+AppShell --> ProfileController
+AppShell --> DistractionBlocker : reads status
+AppShell --> StartupConfiguration
+AppShell --> StartupConfigurationLoader : saves preferences
+AppShell --> NavigationPage
+AppShell ..> MilestoneInfoView
+AppShell ..> ViewComponents
+ProfileController --> ProfileService
+ProfileController ..> ViewComponents
+ProfileController ..> Validation
+MilestoneInfoView --> NavigationPage
+MilestoneInfoView ..> ViewComponents
+
+note bottom of StudyModeApplication
+  Domain models have no JavaFX/JDBC dependencies.
+  I/O is serialized off the FX application thread.
+  Native Windows blocking and later workflows are absent.
+end note
+@enduml
