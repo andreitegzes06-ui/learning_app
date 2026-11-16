@@ -30,13 +30,14 @@ class JavaFxSmokeTest {
         var service = new ProfileService(new SqliteUserProfileStore(database), Clock.systemUTC());
         var fakeNanos = new java.util.concurrent.atomic.AtomicLong();
         var ledger = new SqliteStudySessionLedger(database);
-        var focus = new com.studymode.application.service.FocusSessionService(ledger,new SqliteUserProfileStore(database),new SqliteClassroomCatalog(database),new SqliteStudyPlanStore(database),Clock.systemUTC(),fakeNanos::get,true);
+        var blocker=new com.studymode.platform.simulation.SimulatedDistractionBlocker(Clock.systemUTC());
+        var focus = new com.studymode.application.service.FocusSessionService(ledger,new SqliteUserProfileStore(database),new SqliteClassroomCatalog(database),new SqliteStudyPlanStore(database),Clock.systemUTC(),fakeNanos::get,true,new com.studymode.application.service.FocusBlockingService(blocker,new SqliteBlockedApplicationCatalog(database)));
         Stage[] stage = new Stage[1]; AppShell[] shell = new AppShell[1];
         try {
             fx(() -> {
                 shell[0] = new AppShell(service, io, Optional.empty(), new StartupConfiguration(root, "dashboard", 1200, 800,true), new StartupConfigurationLoader(),
-                        new com.studymode.platform.simulation.SimulatedDistractionBlocker(Clock.systemUTC()),
-                        new com.studymode.persistence.transfer.JsonStudyDataTransfer(new SqliteStudyDataArchive(database, Clock.systemUTC()), root),focus,new com.studymode.application.service.StudyStatisticsService(ledger,Clock.systemUTC()),new com.studymode.application.service.StudyOrganizationService(new SqliteClassroomCatalog(database),new SqliteFocusWorkspaceStore(database),new SqliteStudyPlanStore(database),new SqliteUserProfileStore(database),ledger,new SqliteBlockedApplicationCatalog(database),Clock.systemUTC()),url -> { } );
+                        blocker,
+                        new com.studymode.persistence.transfer.JsonStudyDataTransfer(new SqliteStudyDataArchive(database, Clock.systemUTC()), root),focus,new com.studymode.application.service.StudyStatisticsService(ledger,Clock.systemUTC()),new com.studymode.application.service.StudyOrganizationService(new SqliteClassroomCatalog(database),new SqliteFocusWorkspaceStore(database),new SqliteStudyPlanStore(database),new SqliteUserProfileStore(database),ledger,new SqliteBlockedApplicationCatalog(database),Clock.systemUTC()),url -> { },new com.studymode.application.service.BlockedApplicationService(new SqliteBlockedApplicationCatalog(database),blocker));
                 stage[0] = new Stage(); stage[0].setTitle("Study Mode — UI test");
                 Scene scene = new Scene(shell[0], 1200, 800);
                 scene.getStylesheets().add(getClass().getResource("/styles/dark.css").toExternalForm());
@@ -101,10 +102,44 @@ class JavaFxSmokeTest {
             });
             fx(() -> { shell[0].navigate(NavigationPage.FOCUS); shell[0].applyCss(); shell[0].layout(); });
             io.submit(() -> { }).get(10,TimeUnit.SECONDS);
+            fx(() -> {
+                assertFalse(((Button)shell[0].lookup("#focus-start-break")).isDisabled());
+                ((Button)shell[0].lookup("#focus-start-break")).fire();
+            }); drain(io);
+            assertEquals(com.studymode.domain.study.BreakCycle.Phase.RUNNING,focus.snapshot().cycle().phase());
+            fx(() -> ((Button)shell[0].lookup("#focus-pause")).fire()); drain(io);
+            assertEquals(com.studymode.domain.study.BreakCycle.Phase.PAUSED,focus.snapshot().cycle().phase());
+            fx(() -> ((Button)shell[0].lookup("#focus-resume")).fire()); drain(io);
+            fx(() -> ((Button)shell[0].lookup("#focus-skip-break")).fire()); drain(io);
+            assertEquals(com.studymode.domain.study.BreakCycle.Phase.SKIPPED,focus.snapshot().cycle().phase());
             fx(() -> ((Button)shell[0].lookup("#focus-start")).fire()); io.submit(() -> { }).get(10,TimeUnit.SECONDS);
             fakeNanos.addAndGet(1_000_000_000L); fx(() -> ((Button)shell[0].lookup("#focus-stop")).fire());
             io.submit(() -> { }).get(10,TimeUnit.SECONDS); assertEquals(com.studymode.domain.study.FocusState.INTERRUPTED,focus.snapshot().state());
             assertEquals(2,ledger.findByPeriod(java.time.Instant.MIN,java.time.Instant.MAX).size());
+            fx(() -> {
+                ((CheckBox)shell[0].lookup("#focus-auto-break")).setSelected(true);
+                ((TextField)shell[0].lookup("#focus-short-break")).setText("1");
+                ((TextField)shell[0].lookup("#focus-long-break")).setText("2");
+                ((TextField)shell[0].lookup("#focus-long-every")).setText("2");
+                ((Button)shell[0].lookup("#focus-start")).fire();
+            }); drain(io);
+            fakeNanos.addAndGet(10_000_000_000L); io.submit(focus::tick).get(10,TimeUnit.SECONDS);
+            fx(() -> { shell[0].navigate(NavigationPage.FOCUS); shell[0].applyCss(); shell[0].layout(); }); drain(io);
+            fx(() -> {
+                assertTrue(((Label)shell[0].lookup("#focus-state")).getText().contains("SHORT BREAK"));
+                assertEquals("01:00",((Label)shell[0].lookup("#focus-countdown")).getText());
+                assertTrue(javafx.stage.Window.getWindows().stream().anyMatch(w -> w.getScene()!=null && w.getScene().lookup("#study-notification")!=null));
+            });
+            for(int i=0;i<60;i++) { fakeNanos.addAndGet(1_000_000_000L); io.submit(focus::tick).get(10,TimeUnit.SECONDS); }
+            assertEquals(com.studymode.domain.study.BreakCycle.Phase.COMPLETE,focus.snapshot().cycle().phase());
+            assertEquals(10,focus.snapshot().session().activeFocusSeconds());
+            fx(() -> { shell[0].navigate(NavigationPage.FOCUS); shell[0].applyCss(); shell[0].layout(); }); drain(io);
+            fx(() -> {
+                assertTrue(((Label)shell[0].lookup("#focus-state")).getText().contains("COMPLETE"));
+                snapshot(stage[0],"m5-focus-900.png");
+                stage[0].setWidth(1200); stage[0].setHeight(800); shell[0].applyCss(); shell[0].layout();
+                snapshot(stage[0],"m5-focus-1200.png");
+            });
             fx(() -> { shell[0].navigate(NavigationPage.CLASSROOMS); shell[0].applyCss(); shell[0].layout(); });
             io.submit(() -> { }).get(10, TimeUnit.SECONDS);
             fx(() -> {
@@ -143,17 +178,26 @@ class JavaFxSmokeTest {
             fx(() -> {
                 ((TextField)shell[0].lookup("#workspace-name")).setText("Exam workspace");
                 ((TextField)shell[0].lookup("#workspace-focus")).setText("1");
+                ((TextField)shell[0].lookup("#workspace-break")).setText("2");
+                ((TextField)shell[0].lookup("#workspace-long-break")).setText("7");
+                ((TextField)shell[0].lookup("#workspace-long-every")).setText("3");
                 ((ComboBox<?>)shell[0].lookup("#workspace-classroom")).getSelectionModel().selectFirst();
                 ((ListView<?>)shell[0].lookup("#workspace-resources")).getSelectionModel().selectFirst();
                 ((Button)shell[0].lookup("#save-workspace")).fire();
             });
             drain(io);
             assertEquals(1,new SqliteFocusWorkspaceStore(database).findAll().size());
+            assertEquals(new com.studymode.domain.workspace.FocusPreferences(1,2,7,3),new SqliteFocusWorkspaceStore(database).findAll().getFirst().preferences());
             fx(() -> { ((ComboBox<?>)shell[0].lookup("#workspace-goal")).getSelectionModel().selectFirst(); ((Button)shell[0].lookup("#start-workspace")).fire(); });
             drain(io);
             assertEquals(NavigationPage.FOCUS,shell[0].currentPage());
             assertEquals(60,focus.snapshot().session().context().plannedFocusSeconds());
-            fx(() -> { shell[0].applyCss(); shell[0].layout(); assertEquals("60",((TextField)shell[0].lookup("#focus-duration")).getText()); });
+            fx(() -> {
+                shell[0].applyCss(); shell[0].layout(); assertEquals("60",((TextField)shell[0].lookup("#focus-duration")).getText());
+                assertEquals("2",((TextField)shell[0].lookup("#focus-short-break")).getText());
+                assertEquals("7",((TextField)shell[0].lookup("#focus-long-break")).getText());
+                assertEquals("3",((TextField)shell[0].lookup("#focus-long-every")).getText());
+            });
             fakeNanos.addAndGet(4_000_000_000L); fx(() -> ((Button)shell[0].lookup("#focus-finish")).fire());
             drain(io); assertEquals(4,focus.snapshot().session().activeFocusSeconds());
             fx(() -> { shell[0].navigate(NavigationPage.GOALS); shell[0].applyCss(); shell[0].layout(); }); drain(io);
@@ -183,6 +227,13 @@ class JavaFxSmokeTest {
             fx(() -> { if (shell[0] != null) shell[0].close(); if (stage[0] != null) stage[0].close(); });
             io.shutdown(); assertTrue(io.awaitTermination(10, TimeUnit.SECONDS)); Platform.exit();
         }
+    }
+    private static void snapshot(Stage stage,String name) {
+        var image=stage.getScene().snapshot(null); int width=(int)image.getWidth(), height=(int)image.getHeight();
+        var output=new java.awt.image.BufferedImage(width,height,java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        for(int y=0;y<height;y++) for(int x=0;x<width;x++) output.setRGB(x,y,image.getPixelReader().getArgb(x,y));
+        try { javax.imageio.ImageIO.write(output,"png",Path.of("target",name).toFile()); }
+        catch(java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
     }
     private static void drain(ExecutorService io) throws Exception {
         io.submit(() -> { }).get(10,TimeUnit.SECONDS); fx(() -> { });

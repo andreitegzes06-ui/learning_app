@@ -13,6 +13,8 @@ import com.studymode.application.service.StudyStatisticsService;
 import com.studymode.application.service.StudyOrganizationService;
 import com.studymode.ui.controller.GoalController;
 import com.studymode.ui.controller.WorkspaceController;
+import com.studymode.ui.controller.BlockedApplicationsController;
+import com.studymode.application.service.BlockedApplicationService;
 import com.studymode.domain.profile.UserProfile;
 import com.studymode.persistence.config.StartupConfiguration;
 import com.studymode.persistence.config.StartupConfigurationLoader;
@@ -37,11 +39,13 @@ public final class AppShell extends BorderPane implements AutoCloseable {
     private final ExecutorService io;
     private final DistractionBlocker blocker;
     private final FocusSessionController focusController;
+    private final com.studymode.ui.view.JavaFxStudyNotifications notifications = new com.studymode.ui.view.JavaFxStudyNotifications(() -> getScene()==null ? null : getScene().getWindow());
     private final DashboardController dashboardController;
     private final StudyHistoryController historyController;
     private final ClassroomController classroomController;
     private final GoalController goalController;
     private final WorkspaceController workspaceController;
+    private final BlockedApplicationsController blockedController;
     private final DataTransferController dataTransferController;
     private final Label profileCaption = text("", "muted");
     private Optional<UserProfile> profile;
@@ -51,22 +55,24 @@ public final class AppShell extends BorderPane implements AutoCloseable {
                     StartupConfiguration config, StartupConfigurationLoader configurationLoader,
                     DistractionBlocker blocker, StudyDataTransfer dataTransfer,
                     FocusSessionService focusSessions, StudyStatisticsService statistics,
-                    StudyOrganizationService organization, java.util.function.Consumer<String> openResource) {
+                    StudyOrganizationService organization, java.util.function.Consumer<String> openResource,BlockedApplicationService blockedApplications) {
         this.profile = profile; this.config = config; this.configurationLoader = configurationLoader; this.io = io;
         this.blocker = blocker;
         dashboardController = new DashboardController(statistics,service,io);
         historyController = new StudyHistoryController(statistics,service,io);
+        focusSessions.setNotifications(notifications);
         focusController = new FocusSessionController(focusSessions,io,config.demoMode(),this::refreshSessionViews,() -> navigate(NavigationPage.SETTINGS));
         classroomController = new ClassroomController(organization, io, openResource);
         goalController = new GoalController(organization,focusSessions,io,() -> navigate(NavigationPage.FOCUS));
         workspaceController = new WorkspaceController(organization,focusSessions,io,() -> navigate(NavigationPage.FOCUS),openResource);
+        blockedController = new BlockedApplicationsController(blockedApplications,organization,blocker,io);
         profileController = new ProfileController(service, io, profile, saved -> {
             this.profile = Optional.of(saved); updateProfileCaption();
         });
         dataTransferController = new DataTransferController(dataTransfer, io, imported -> {
             this.profile = imported.profiles().stream().findFirst(); focusController.resetAfterImport();
             profileController.reload(this.profile); updateProfileCaption();
-        }, this::setDisable);
+        }, this::setDisable,focusSessions::requireImportAllowed);
         getStyleClass().add("app-shell");
         setLeft(sidebar()); updateProfileCaption();
         navigate(profile.isEmpty() ? NavigationPage.SETTINGS : NavigationPage.fromKey(config.startPage()));
@@ -83,7 +89,9 @@ public final class AppShell extends BorderPane implements AutoCloseable {
         }
         VBox brand = new VBox(5, text("STUDY MODE", "brand"), text("Space to do your best work", "sidebar-subtitle"));
         Region spacer = new Region(); VBox.setVgrow(spacer, Priority.ALWAYS);
-        VBox bar = new VBox(24, brand, items, spacer, text(config.demoMode() ? "DEMO / TEST MODE" : "STUDY MODE · FOCUS", "sidebar-subtitle"), profileCaption);
+        Button stopFocus=new Button("Stop focus now"); stopFocus.setId("stop-focus-now");
+        stopFocus.setOnAction(e -> { navigate(NavigationPage.FOCUS); focusController.stopImmediately(); });
+        VBox bar = new VBox(24, brand, items, stopFocus, spacer, text(config.demoMode() ? "DEMO / TEST MODE" : "STUDY MODE · FOCUS", "sidebar-subtitle"), profileCaption);
         bar.getStyleClass().add("sidebar"); bar.setPrefWidth(242); bar.setMinWidth(210);
         ScrollPane scroll = new ScrollPane(bar); scroll.setFitToWidth(true); scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.getStyleClass().add("sidebar-scroll"); scroll.setPrefWidth(242);
@@ -99,6 +107,7 @@ public final class AppShell extends BorderPane implements AutoCloseable {
             case CLASSROOMS -> { classroomController.refresh(); yield classroomController.view(); }
             case WORKSPACES -> { workspaceController.refresh(); yield workspaceController.view(); }
             case GOALS -> { goalController.refresh(); yield goalController.view(); }
+            case BLOCKED -> { blockedController.refresh(); yield blockedController.view(); }
             case FOCUS -> { focusController.refresh(); yield focusController.view(); }
             case HISTORY -> { historyController.refresh(); yield historyController.view(); }
             default -> new MilestoneInfoView(page);
@@ -118,7 +127,7 @@ public final class AppShell extends BorderPane implements AutoCloseable {
         FlowPane cards = new FlowPane(16, 16);
         VBox identity = card(text("LOCAL PROFILE", "eyebrow"), text(profile.map(UserProfile::displayName).orElse("Not created"), "card-value"),
                 text(profile.map(p -> p.studyZone().getId()).orElse("Create your profile in Settings"), "muted"));
-        VBox safety = card(text("DISTRACTION BLOCKING", "eyebrow"), text(blocker.isRunning() ? "Simulation active" : "Inactive", "card-value"), text("Simulation adapter only · no processes modified", "muted"));
+        VBox safety = card(text("DISTRACTION BLOCKING", "eyebrow"), text(blocker.isRunning() ? "Monitoring active" : "Inactive", "card-value"), text(blocker.mode()+" · best-effort · Pause and Stop cancel monitoring", "muted"));
         identity.setPrefWidth(330); safety.setPrefWidth(330); cards.getChildren().addAll(identity, safety);
         return new VBox(22, welcome, cards,
                 dashboardController.view(),
@@ -142,7 +151,7 @@ public final class AppShell extends BorderPane implements AutoCloseable {
             });
         });
         return new VBox(22, profileController.view(),
-                card(text("Application preferences", "section-title"), text("Dark theme · local-only profile · simulation adapter", "body-text"), saveSize, savedFeedback),
+                card(text("Application preferences", "section-title"), text("Dark theme · local-only profile · "+blocker.mode(), "body-text"), saveSize, savedFeedback),
                 card(text("Local data", "section-title"), text(config.dataDirectory().toString(), "path-text"),
                         text("SQLite stores your study data here. Named startup presets remain planned.", "muted")), dataTransferController.view());
     }
@@ -154,5 +163,5 @@ public final class AppShell extends BorderPane implements AutoCloseable {
         if (current == NavigationPage.HISTORY) historyController.refresh();
     }
     public void requestClose(Runnable exit) { focusController.requestClose(exit,this::setDisable); }
-    @Override public void close() { focusController.close(); }
+    @Override public void close() { focusController.close(); notifications.close(); }
 }

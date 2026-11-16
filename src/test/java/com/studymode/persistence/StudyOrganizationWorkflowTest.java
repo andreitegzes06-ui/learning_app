@@ -163,11 +163,13 @@ class StudyOrganizationWorkflowTest {
         assertEquals(original,transfer.inspectImport(file)); transfer.importSnapshot(transfer.inspectImport(file)); assertEquals(original,archive.snapshot());
         var mapper=new com.fasterxml.jackson.databind.ObjectMapper(); var doc=(com.fasterxml.jackson.databind.node.ObjectNode)mapper.readTree(file.toFile());
         doc.put("formatVersion",2);
+        for(var app:doc.get("applications")) ((com.fasterxml.jackson.databind.node.ObjectNode)app).remove("enabled");
+        for(var workspace:doc.get("workspaces")) for(var app:workspace.get("shortcuts")) ((com.fasterxml.jackson.databind.node.ObjectNode)app).remove("enabled");
         for(var c:doc.get("classrooms")) { ((com.fasterxml.jackson.databind.node.ObjectNode)c).remove("color"); ((com.fasterxml.jackson.databind.node.ObjectNode)c).remove("notes"); }
         for(var goal:doc.get("goals")) ((com.fasterxml.jackson.databind.node.ObjectNode)goal).remove("classroomId");
         for(var workspace:doc.get("workspaces")) ((com.fasterxml.jackson.databind.node.ObjectNode)workspace).remove("shortcuts");
         mapper.writeValue(file.toFile(),doc); var imported=transfer.inspectImport(file);
-        assertEquals(3,imported.formatVersion()); assertNull(imported.goals().getFirst().classroomId());
+        assertEquals(4,imported.formatVersion()); assertNull(imported.goals().getFirst().classroomId());
         assertEquals("#7569EF",imported.classrooms().getFirst().color()); assertEquals("",imported.classrooms().getFirst().notes());
         assertEquals(original,archive.snapshot());
     }

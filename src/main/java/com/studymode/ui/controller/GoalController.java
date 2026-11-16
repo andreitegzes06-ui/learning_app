@@ -20,6 +20,7 @@ public final class GoalController {
     private final TextField name=new TextField(), target=new TextField("60");
     private final Label feedback=text("","feedback"), progressText=text("","body-text");
     private final ProgressBar progress=new ProgressBar(0);
+    private final CheckBox authorizeClosing=new CheckBox("I authorize graceful closing of the global enabled blocklist. Only used in Windows close mode; review Blocked Applications first.");
     private final VBox view=new VBox(20);
     private StudyGoal selected;
     private UUID profileId;
@@ -28,6 +29,7 @@ public final class GoalController {
     private record GoalOverview(List<StudyGoal> goals,List<Classroom> classrooms,Map<UUID,Long> seconds,UUID profileId) { }
     public GoalController(StudyOrganizationService service, FocusSessionService focus, ExecutorService io, Runnable showFocus) {
         this.service=service; this.io=io;
+        authorizeClosing.setWrapText(true); authorizeClosing.setId("goal-authorize-closing");
         goals.setId("goal-list"); name.setId("goal-name"); target.setId("goal-target"); classroom.setId("goal-classroom"); period.setId("goal-period");
         progressText.setId("goal-progress-text"); progress.setId("goal-progress");
         names(goals,StudyGoal::text); names(classroom,Classroom::name); classroom.setPromptText("Any classroom");
@@ -55,13 +57,14 @@ public final class GoalController {
         start.setOnAction(e -> {
             if(selected==null) { feedback.setText("Select a saved goal first."); return; }
             UUID id=selected.id();
-            run(io,view,feedback,() -> { var goal=service.requireGoal(id); return focus.start(Math.min(25,goal.targetMinutes())*60L,goal.classroomId(),id); }, saved -> showFocus.run());
+            boolean authorized=authorizeClosing.isSelected(); authorizeClosing.setSelected(false);
+            run(io,view,feedback,() -> { var goal=service.requireGoal(id); return focus.start(Math.min(25,goal.targetMinutes())*60L,goal.classroomId(),id,authorized); }, saved -> showFocus.run());
         });
         view.getChildren().setAll(card(text("Study goals","section-title"),text("Progress counts linked, completed sessions in your current study-zone day or Monday-start week. Paused and interrupted time is excluded.","muted"),
                 goals,new FlowPane(10,10,fresh,reload)),
                 card(text("Goal details","section-title"),text("Name","field-label"),name,text("Target minutes (1–10080)","field-label"),target,
                         text("Repeats","field-label"),period,text("Classroom assignment (optional)","field-label"),classroom,clear,
-                        new FlowPane(10,10,save,delete,start),progressText,progress,feedback));
+                        new FlowPane(10,10,save,delete),authorizeClosing,start,progressText,progress,feedback));
         progress.setMaxWidth(Double.MAX_VALUE);
         goals.getSelectionModel().selectedItemProperty().addListener((o,a,b) -> { if(!replacing) edit(b); });
         edit(null);

@@ -1,5 +1,7 @@
 # Persistence, files, and Windows integration (planned)
 
+Current M5 amendment: the four existing workspace timing columns now drive real break cycles. Break state stays in-process and never enters the focus ledger. The retained M4 adapters implement explicit best-effort graceful window closing and dry run; they do not forcibly terminate processes. See [M5 contract and verification](break-cycles-m5.md) for current behavior; historical design proposals below do not override it.
+
 M2 implementation update: the user's persistence milestone brings entity CRUD and JSON transfer forward. [persistence-m2.md](persistence-m2.md) is the actual schema/transaction/JSON contract. Original future-table proposals and M7 labels below remain design history, not a claim of implemented columns. Windows integration remains unimplemented.
 
 ## Local storage and configuration

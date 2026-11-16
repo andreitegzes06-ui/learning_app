@@ -42,7 +42,7 @@ class FocusSessionWorkflowTest {
         service.start(10,null,null); time.advance(Duration.ofMillis(600)); service.pause();
         time.advance(Duration.ofMinutes(30)); service.resume(); time.advance(Duration.ofMillis(400)); service.finish();
         assertEquals(1,service.snapshot().session().activeFocusSeconds());
-        assertThrows(FocusModeException.class,service::finish); assertThrows(FocusModeException.class,service::interrupt);
+        assertThrows(FocusModeException.class,service::finish); service.skipBreak(); assertThrows(FocusModeException.class,service::interrupt);
         assertEquals(1,ledger.findByPeriod(Instant.MIN,Instant.MAX).size());
     }
     @Test void countdownCompletesAutomaticallyAndCapsDelayedPulseAtTheActualTarget() {

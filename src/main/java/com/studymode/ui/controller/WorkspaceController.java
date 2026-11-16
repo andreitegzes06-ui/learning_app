@@ -24,7 +24,10 @@ public final class WorkspaceController {
     private final TextField name=new TextField(), focus=new TextField("25"), rest=new TextField("5");
     private final ListView<StudyResource> resources=new ListView<>();
     private final ListView<BlockedApplication> blocklist=new ListView<>(), shortcuts=new ListView<>();
+    private final TextField longRest=new TextField("15"), longEvery=new TextField("4");
+    private final CheckBox autoBreak=new CheckBox("Automatically start breaks after focus");
     private final Label feedback=text("","feedback");
+    private final CheckBox authorizeClosing=new CheckBox("I authorize graceful closing of this workspace's enabled blocked apps. Only used in Windows close mode.");
     private final VBox view=new VBox(20);
     private FocusWorkspace selected;
     private boolean replacing;
@@ -33,10 +36,12 @@ public final class WorkspaceController {
             Runnable showFocus, Consumer<String> openUrl) {
         this.service=service; this.io=io;
         workspaces.setId("workspace-list"); name.setId("workspace-name"); classroom.setId("workspace-classroom");
+        longRest.setId("workspace-long-break"); longEvery.setId("workspace-long-every"); autoBreak.setId("workspace-auto-break");
         focus.setId("workspace-focus"); rest.setId("workspace-break"); resources.setId("workspace-resources"); goal.setId("workspace-goal");
         blocklist.setId("workspace-blocklist"); shortcuts.setId("workspace-shortcuts");
         names(workspaces,FocusWorkspace::name); names(classroom,Classroom::name); names(goal,StudyGoal::text);
-        names(resources,r -> r.title()+" — "+r.uri()); names(blocklist,BlockedApplication::toString); names(shortcuts,BlockedApplication::toString);
+        names(resources,r -> r.title()+" — "+r.uri()); names(blocklist,a -> (a.enabled()?"ENABLED · ":"DISABLED · ")+a); names(shortcuts,BlockedApplication::toString);
+        authorizeClosing.setWrapText(true); authorizeClosing.setId("workspace-authorize-closing");
         resources.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         classroom.setPromptText("Select classroom"); goal.setPromptText("No linked goal");
         classroom.valueProperty().addListener((o,a,b) -> {
@@ -49,9 +54,9 @@ public final class WorkspaceController {
             try {
                 if(classroom.getValue()==null) throw new IllegalArgumentException("Select a classroom.");
                 int minutes=Integer.parseInt(focus.getText().strip()), breakMinutes=Integer.parseInt(rest.getText().strip());
-                var previous=selected==null?FocusPreferences.defaults():selected.preferences();
+
                 var value=new FocusWorkspace(selected==null?UUID.randomUUID():selected.id(),name.getText(),classroom.getValue().id(),
-                        new FocusPreferences(minutes,breakMinutes,previous.longBreakMinutes(),previous.longBreakEvery()),
+                        new FocusPreferences(minutes,breakMinutes,Integer.parseInt(longRest.getText().strip()),Integer.parseInt(longEvery.getText().strip())),
                         resources.getSelectionModel().getSelectedItems().stream().map(StudyResource::id).collect(java.util.stream.Collectors.toSet()),
                         Set.copyOf(blocklist.getItems()),Set.copyOf(shortcuts.getItems()));
                 boolean creating=selected==null;
@@ -70,7 +75,9 @@ public final class WorkspaceController {
         start.setOnAction(e -> {
             if(selected==null) { feedback.setText("Save and select a workspace first. Start uses its saved settings."); return; }
             UUID id=selected.id(), goalId=goal.getValue()==null?null:goal.getValue().id();
-            run(io,view,feedback,() -> service.startWorkspace(id,goalId,sessions),result -> showFocus.run());
+            boolean automatic=autoBreak.isSelected();
+            boolean authorized=authorizeClosing.isSelected(); authorizeClosing.setSelected(false);
+            run(io,view,feedback,() -> { sessions.automaticBreaks(automatic); return service.startWorkspace(id,goalId,sessions,authorized); },result -> showFocus.run());
         });
         Button clearGoal=new Button("Clear linked goal"); clearGoal.setOnAction(e -> goal.setValue(null));
         Button addBlock=new Button("Select blocked .exe"), removeBlock=new Button("Remove selection"), addShortcut=new Button("Select study .exe"), removeShortcut=new Button("Remove shortcut"), launch=new Button("Open selected study app");
@@ -89,13 +96,14 @@ public final class WorkspaceController {
         view.getChildren().setAll(card(text("Focus workspaces","section-title"),workspaces,new FlowPane(10,10,fresh,reload)),
                 card(text("Environment settings","section-title"),text("Name","field-label"),name,text("Classroom","field-label"),classroom,
                         text("Focus minutes (1–240)","field-label"),focus,text("Default break minutes (1–60)","field-label"),rest,
-                        text("Break preference is saved; this milestone runs single focus sessions without automatic break cycles.","muted"),
+                        text("Long break minutes (1–60)","field-label"),longRest,text("Focus periods before long break (1–12)","field-label"),longEvery,
+                        autoBreak,text("All four timing values are saved per workspace. Automatic transition is a launch choice. Break time never counts as focus.","muted"),
                         text("Optional classroom resources · Ctrl-click to select several","field-label"),resources,open,
-                        text("Saved blocklist · Windows enforcement is not active","field-label"),blocklist,new FlowPane(10,10,addBlock,removeBlock),
+                        text("Workspace blocklist · behavior depends on the selected blocker mode","field-label"),blocklist,new FlowPane(10,10,addBlock,removeBlock),
                         text("Optional study application shortcuts · opened only when you request it","field-label"),shortcuts,new FlowPane(10,10,addShortcut,removeShortcut,launch),
                         new FlowPane(10,10,save,delete)),
                 card(text("Start the saved environment","section-title"),text("The saved classroom and focus duration configure the real timer. Optional goal is chosen for this session.","muted"),
-                        goal,clearGoal,start,feedback));
+                        goal,clearGoal,authorizeClosing,start,feedback));
         workspaces.getSelectionModel().selectedItemProperty().addListener((o,a,b) -> { if(!replacing) edit(b); });
         edit(null);
     }
@@ -107,6 +115,8 @@ public final class WorkspaceController {
     }
     private void edit(FocusWorkspace value) {
         selected=value; name.setText(value==null?"":value.name()); focus.setText(value==null?"25":Integer.toString(value.preferences().focusMinutes()));
+        longRest.setText(value==null?"15":Integer.toString(value.preferences().longBreakMinutes()));
+        longEvery.setText(value==null?"4":Integer.toString(value.preferences().longBreakEvery()));
         rest.setText(value==null?"5":Integer.toString(value.preferences().shortBreakMinutes()));
         classroom.setValue(value==null?null:classroom.getItems().stream().filter(c -> c.id().equals(value.classroomId())).findFirst().orElse(null));
         resources.getSelectionModel().clearSelection();

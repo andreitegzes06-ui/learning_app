@@ -1,5 +1,18 @@
 # Requirements-to-implementation checklist
 
+## Current M5 acceptance — 16 November 2026
+
+- [x] A: custom focus/short/long durations, two Pomodoro-style presets, configurable long-break cadence, automatic/manual breaks, pause/resume/skip, monotonic accuracy and excluded break time.
+- [x] B: four workspace timing values editable and persisted across database reopen; saved workspace Start reuses the existing session engine.
+- [x] C: enabled/disabled focus and break completion notifications, optional background audio, nonmodal JavaFX fallback. Achievement unlock delivery is conditional on a future unlock engine; no rewards run in M5.
+- [x] D: actual focus-only ledger/history, with no pause, break, offline or post-interruption credit. Demo still records ten actual seconds.
+- [x] E: final clean verification passes all 792 tests without failures/errors/skips, including deterministic cycle tests, actual JavaFX workflows, real-time demo and native read-only Windows smoke.
+- [x] UML updated for actual M4/M5 types; planned diagram remains future design. Existing M4 work included with the user's explicit authorization.
+- [x] Earlier failed UI harness/native sandbox checks were diagnosed and rerun successfully. Exact commands, results and limits are recorded in [M5 report](break-cycles-m5.md).
+- [ ] Native Action Center delivery, persisted live break state and native fixture close automation are not implemented or claimed; M5 uses the documented JavaFX fallback, resets breaks on restart and closes no real apps in tests. Rewards remain M6.
+
+Historical milestone evidence follows; it describes the scope at that time.
+
 Status on 15 November 2026: M3 organization workflows implemented following the focus engine, M1/M2 and JSON correction. `[x]` means verified for the stated scope; `[ ]` or partial means remaining work is pending. Historical sections retain their original counts/scope. Current evidence: [focus verification](verification/focus-workflow.md), [focus contract](focus-workflow.md), [actual-code UML](uml-implemented.puml).
 
 ## Current M3 organization acceptance
@@ -94,15 +107,15 @@ The historical M0 commit was never created. The first M1 source commit also incl
 | T2 | JavaFX UI and CSS; Windows primary platform | AppShell, shared CSS | M1, M8 | Windows launch, packaged launch and visual smoke | Partial: M1 actual Windows launch; M8 packaging pending |
 | T3 | SQLite local persistence; JUnit 5 | JDBC adapters, JUnit suite | M1 onward | Temp-DB/restart tests; test report | [x] foundation; extend with features |
 | F1 | Persistent local user profile | UserProfile, ProfileService, SqliteUserProfileStore | M1 | SqliteFoundationTest and JavaFxSmokeTest; actual app restart | [x] |
-| F2 | Study timer and immediate Stop; break cycles future | FocusSessionService | Prior focus | Deterministic/real-time/UI tests | Partial: timer complete, automatic breaks pending |
-| F3 | User-selected Windows application blocking | WindowsDistractionBlocker | M5 | Safe fixture terminated; excluded/failed targets accurately reported | [ ] |
+| F2 | Study timer, immediate Stop and configurable break cycles | FocusSessionService, BreakCycle | M5 | Deterministic/real-time/UI tests | [x] requested M5 scope |
+| F3 | User-selected Windows application blocking | WindowsDistractionBlocker | M4 retained | Safety unit tests and read-only native metadata smoke | Partial: graceful-close adapter present; native fixture closing not tested in M5 |
 | F4 | Complete classroom workflows | Classroom, ClassroomController, StudyOrganizationService | M3 organization | CRUD/color/notes/tasks/history and restart tests | [x] requested scope |
 | F5 | Educational links including Google Classroom | StudyResource, ClassroomController, HostServices | M3 organization | Add/edit/remove, URL validation, explicit open action | [x] no Google authentication |
-| F6 | Configurable workspaces | FocusWorkspace, WorkspaceController, existing store/engine | M3 organization | CRUD/reopen and real engine Start | [x] settings/integration; Windows enforcement remains M5 |
+| F6 | Configurable workspaces | FocusWorkspace, WorkspaceController, existing store/engine | M3 organization | CRUD/reopen and real engine Start | [x] timing/settings/integration; M4 best-effort blocking retained |
 | F7 | Goals and tasks | StudyGoal, StudyTask, GoalController, StudyOrganizationService | M3 organization | CRUD, task completion and linked period progress | [x] requested scope |
 | F8 | History and statistics | StudySessionLedger, StudyStatisticsService, StudyOrganizationService | Focus/M3 | Real totals, subject history, zone-aware goal progress | Partial: implemented summaries/history; charts/paging future |
 | F9 | XP, achievements, levels, streaks | RewardPolicy, RewardService, RewardStore | M6 | Idempotence and calendar-boundary tests; real UI awards | [ ] |
-| F10 | Local export/import | Existing transfer/archive adapters | M2/M3 | Format 3 round trip, legacy 1/2, strict checks and rollback | [x] replacement; no merge |
+| F10 | Local export/import | Existing transfer/archive adapters | M2/M3 | Format 4 round trip, legacy 1/2/3, strict checks and rollback | [x] replacement; no merge |
 | F11 | Multiple startup configurations | StartupConfigurationLoader, properties presets/CLI | M1, M7 | StartupConfigurationTest; two config sources and precedence/errors | Partial: files/CLI work; named presets M7 |
 
 ## Grading evidence
@@ -112,7 +125,7 @@ The historical M0 commit was never created. The first M1 source commit also incl
 | G1 | At least 4 application-specific classes | Classroom, FocusWorkspace, StudyGoal, StudyTask, StudySession and their working services/controllers | Current | [x] |
 | G2 | At least 2 implemented interfaces | ClassroomCatalog/SqliteClassroomCatalog, FocusWorkspaceStore/SqliteFocusWorkspaceStore, StudySessionLedger/SqliteStudySessionLedger and other real ports | Current | [x] |
 | G3 | At least 2 genuine collections | List<StudySession> drives history/progress; Set<BlockedApplication> drives persisted workspace selections/deduplication | Current | [x] |
-| G4 | Accurate UML | Actual PlantUML/SVG: 72 top-level files and seven named nested types; real dependencies | Current M3 | [x] |
+| G4 | Accurate UML | Actual PlantUML/SVG: 83 top-level source types plus actual named nested types; real dependencies | M5 | [x] |
 | G5 | Read/write application files | Actual SQLite reopen, UTF-8 properties and versioned JSON transfer | Current | [x] |
 | G6 | Configuration and/or startup arguments | Validated properties and CLI flags exercised by StartupConfigurationTest; presets remain later | M1, M7 | [x] foundation |
 | G7 | At least 3 standard exceptions handled | NumberFormatException in config, IOException in file/config/startup, SQLException in JDBC; tested error paths. Also URI/path/security exceptions | M1 | [x] |
@@ -131,7 +144,7 @@ The historical M0 commit was never created. The first M1 source commit also incl
 | W2 | No Windows security changes or automatic admin request | Source/native review and standard-user packaged test | M5, M8 | [ ] |
 | W3 | Never terminate critical/system or Study Mode processes | Fail-closed safety policy; critical/self/runtime/ancestor/system/unknown tests | M5 | [ ] |
 | W4 | Stop focus at any time | Stop cancels blocking before DB persistence; tests under save/native failure | M3, M5 | [ ] |
-| W5 | Simulated blocking for development/tests | SimulatedDistractionBlockerTest validates events/lifecycle; runtime explicitly says simulation/inactive | M1, lifecycle UI M3 | [x] adapter; focus integration later |
+| W5 | Simulated blocking for development/tests | SimulatedDistractionBlockerTest validates events/lifecycle; runtime explicitly says simulation/inactive | M1, lifecycle UI M3 | [x] adapter and focus/break lifecycle integration |
 | D1 | Incremental delivery and explicit milestone gates | AGENTS.md, one requested milestone per implementation turn | Every milestone | [ ] ongoing |
 | D2 | Compile/tests after milestones; preserve existing features | clean verify, targeted smoke, regression suite and verification record | M1 onward | [ ] |
 | D3 | Commit completed milestones to Git | Verified local commit per completed milestone; no remote assumed | M0 onward | [ ] |

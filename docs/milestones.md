@@ -1,5 +1,7 @@
 # Incremental implementation plan
 
+Current override: the user explicitly requested M5 break cycles and notifications after the existing focus/organization/M4 work. [M5 report](break-cycles-m5.md) records the implemented scope and verification. The original ordering below is planning history, not authorization to implement later milestones.
+
 Each milestone requires its own explicit user request. A successful earlier milestone never authorizes the next. M0 is the present stage; M1-M8 are future work. Deliver working slices with no inert controls and keep all earlier tests passing.
 
 For each implementation milestone: run `.\mvnw.cmd clean verify` with JDK 21, perform the listed UI/platform checks, update traceability and actual-code UML, record results in `docs/verification/mN.md`, commit the completed slice, report limitations and commit ID, and stop. Do not mark a milestone complete if required checks cannot run. Build scripts and tests must use temporary data, not the student's live DB.

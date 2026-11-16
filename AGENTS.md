@@ -3,7 +3,7 @@
 ## Scope and milestone gate
 - Build a real Windows desktop application with Java 21, JavaFX, Maven, SQLite, JUnit 5, and JavaFX CSS.
 - Work on exactly the milestone explicitly requested by the user. Stop after that milestone; a plan is not authorization to implement subsequent milestones.
-- The current milestone authorizes complete classrooms/resources/tasks, workspace configuration and timer integration, classroom-assigned goals and real progress, compatible migrations/JSON, tests and UML. Preserve the completed focus engine. Do not implement Windows process termination, rewards, break cycles or unrelated milestones.
+- The current M5 request authorizes configurable focus/break cycles, saved workspace timing preferences, notifications, accurate focus history, tests and documentation around the existing timer. Preserve M4 blocking and previous features. Do not implement rewards or subsequent milestones. Only disposable explicitly launched fixtures may be closed in automated tests.
 - Preserve working features. Do not silently defer requirements; record incomplete work and failed checks in docs/traceability.md and the milestone report.
 - The user's instructions take precedence over this file. Ask about material ambiguity while continuing independent work within the authorized scope.
 

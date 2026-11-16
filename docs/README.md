@@ -1,6 +1,6 @@
 # Study Mode planning baseline
 
-Milestone 3 organization workflows, 15 November 2026. The initial planning baseline remains below; runtime scope and evidence are tracked separately. Start with the [application README](../README.md) for build/launch instructions.
+Milestone 5 break cycles and notifications, 16 November 2026. The initial planning baseline remains below; runtime scope and evidence are tracked separately. Start with the [application README](../README.md) for build/launch instructions.
 
 | Document | Purpose |
 | --- | --- |
@@ -15,10 +15,12 @@ Milestone 3 organization workflows, 15 November 2026. The initial planning basel
 | [M1 file inventory](verification/m1-files.md) | Created/modified source, resources, tests and documentation |
 | [M2 persistence](persistence-m2.md) | Actual schema, CRUD/delete policies, JSON format and recovery |
 | [M2 verification](verification/m2.md) | Acceptance evidence, tests and scope limits |
+| [M5 verification](verification/m5.md) | Final build, UI/demo/native and diagram checks |
+| [M5 cycles and notifications](break-cycles-m5.md) | Current cycle controls, persistence, fallback notifications, tests and limitations |
 | [M3 organization](organization-m3.md) | Current classroom/workspace/goal contract, verification and demo |
 | [Focus workflow](focus-workflow.md) | Actual lifecycle, timekeeping, recovery, schema/JSON compatibility and demo |
 | [Focus verification](verification/focus-workflow.md) | Current 679-test build and presentation procedure |
-| [Implemented UML](uml-implemented.puml) / [SVG](uml-implemented.svg) | Only actual classes/interfaces/relationships through M3 organization workflows |
+| [Implemented UML](uml-implemented.puml) / [SVG](uml-implemented.svg) | Only actual classes/interfaces/relationships through M5 |
 
 Project development rules live in [AGENTS.md](../AGENTS.md).
 

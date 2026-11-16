@@ -28,7 +28,7 @@ public final class StudyModeApplication extends Application {
     });
     private final StartupConfigurationLoader configurationLoader = new StartupConfigurationLoader();
     private DataDirectoryLock directoryLock;
-    private final DistractionBlocker blocker = new SimulatedDistractionBlocker(Clock.systemUTC());
+    private volatile DistractionBlocker blocker = new SimulatedDistractionBlocker(Clock.systemUTC());
     private volatile boolean stopping;
     private FocusSessionService focusSessions;
     private AppShell shell;
@@ -50,8 +50,15 @@ public final class StudyModeApplication extends Application {
                 ProfileService profiles = new ProfileService(new SqliteUserProfileStore(database), Clock.systemUTC());
                 var profile = profiles.load();
                 StudySessionLedger ledger = new SqliteStudySessionLedger(database);
+                blocker.close();
+                blocker = switch(config.blockerMode()) {
+                    case "windows" -> new com.studymode.platform.windows.WindowsDistractionBlocker(false,Clock.systemUTC());
+                    case "windows-dry-run" -> new com.studymode.platform.windows.WindowsDistractionBlocker(true,Clock.systemUTC());
+                    default -> new SimulatedDistractionBlocker(Clock.systemUTC());
+                };
                 focusSessions = new FocusSessionService(ledger,new SqliteUserProfileStore(database),new SqliteClassroomCatalog(database),
-                        new SqliteStudyPlanStore(database),Clock.systemUTC(),System::nanoTime,config.demoMode());
+                        new SqliteStudyPlanStore(database),Clock.systemUTC(),System::nanoTime,config.demoMode(),
+                        new com.studymode.application.service.FocusBlockingService(blocker,new SqliteBlockedApplicationCatalog(database)));
                 focusSessions.recoverUnfinished();
                 // Loading records and blocker status never starts a session or modifies processes.
                 directoryLock = acquired; acquired = null;
@@ -63,7 +70,7 @@ public final class StudyModeApplication extends Application {
                                 new SqliteStudyDataArchive(database, Clock.systemUTC()), config.dataDirectory()),focusSessions,new StudyStatisticsService(ledger,Clock.systemUTC()),
                                 new com.studymode.application.service.StudyOrganizationService(new SqliteClassroomCatalog(database),new SqliteFocusWorkspaceStore(database),
                                         new SqliteStudyPlanStore(database),new SqliteUserProfileStore(database),ledger,new SqliteBlockedApplicationCatalog(database),Clock.systemUTC()),
-                                getHostServices()::showDocument);
+                                getHostServices()::showDocument,new com.studymode.application.service.BlockedApplicationService(new SqliteBlockedApplicationCatalog(database),blocker));
                         showScene(stage,shell,config.windowWidth(),config.windowHeight());
                         stage.setOnCloseRequest(event -> { event.consume(); shell.requestClose(Platform::exit); });
                     }
@@ -94,7 +101,7 @@ public final class StudyModeApplication extends Application {
 
     @Override public void stop() {
         stopping = true;
-        blocker.stop();
+        blocker.close();
         if (shell != null) shell.close();
         // This queued cleanup follows any profile save already submitted; it does not block the FX thread.
         io.execute(() -> {

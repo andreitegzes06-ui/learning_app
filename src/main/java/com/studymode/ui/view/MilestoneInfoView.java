@@ -9,7 +9,6 @@ public final class MilestoneInfoView extends VBox {
     public MilestoneInfoView(NavigationPage page) {
         super(22);
         String details = switch (page) {
-            case BLOCKED -> "Real Windows enforcement arrives in milestone 5. Nothing is being blocked. The foundation includes a tested simulation adapter for development; it never touches operating-system processes.";
             case STATISTICS -> "Dashboard now shows recorded completed time and session count; History lists saved outcomes. Detailed charts, filters and goal progress remain planned for milestone 4.";
             case ACHIEVEMENTS -> "XP, levels, achievements, and study streak calculations arrive in milestone 6. Existing achievement definitions and award facts can already be stored and backed up. No rewards engine runs in this milestone.";
             default -> throw new IllegalArgumentException("This page has its own implemented view.");

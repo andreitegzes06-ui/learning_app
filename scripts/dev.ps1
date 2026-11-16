@@ -3,6 +3,8 @@ param(
     [switch]$IncludeUiTests,
     [switch]$Demo,
     [switch]$RealDemoTest,
+    [switch]$WindowsBlockerTests,
+    [ValidateSet('simulated','windows-dry-run','windows')][string]$Blocker = 'simulated',
     [string]$DataDirectory,
     [ValidateSet('dashboard','focus','history','classrooms','workspaces','blocked','goals','statistics','achievements','settings')]
     [string]$StartPage = 'dashboard'
@@ -23,6 +25,7 @@ try {
     $mavenArguments = @('--batch-mode', '--no-transfer-progress', '-Dmaven.repo.local=.tools/m2')
     if ($IncludeUiTests) { $mavenArguments += '-Dstudymode.ui.tests=true' }
     if ($RealDemoTest) { $mavenArguments += '-Dstudymode.real.demo=true' }
+    if ($WindowsBlockerTests) { $mavenArguments += '-Dstudymode.windows.tests=true' }
     switch ($Task) {
         'build' {
             # Native removal handles read-only OneDrive directory attributes which Maven clean cannot remove here.
@@ -38,6 +41,7 @@ try {
         'ui-test' { $mavenArguments += @('-Dstudymode.ui.tests=true', 'verify') }
         'run' {
             $launchOptions = '--start-page=' + $StartPage
+            $launchOptions += ' --blocker=' + $Blocker
             if ($Demo) { $launchOptions += ' --demo=true' }
             if ($DataDirectory) {
                 $absoluteData = [System.IO.Path]::GetFullPath($DataDirectory)

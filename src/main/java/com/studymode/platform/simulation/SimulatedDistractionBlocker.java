@@ -18,7 +18,7 @@ public final class SimulatedDistractionBlocker implements DistractionBlocker {
     public SimulatedDistractionBlocker(Clock clock) { this.clock = java.util.Objects.requireNonNull(clock); }
     @Override public synchronized void start(Set<BlockedApplication> selected) {
         if (running) throw new FocusModeException("Simulation is already active. Stop it before starting again.");
-        targets = Set.copyOf(selected);
+        targets = selected.stream().filter(BlockedApplication::enabled).collect(java.util.stream.Collectors.toUnmodifiableSet());
         running = true;
         record("SIMULATED start: " + targets.size() + " selected application(s).");
         targets.forEach(target -> record("SIMULATED would block: " + target.displayName()));

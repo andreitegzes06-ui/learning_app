@@ -1,6 +1,10 @@
 # Application architecture (planned)
 
-## Current M3 organization amendment
+## Current M5 amendment
+
+M5 composes the existing FocusSessionService with the Java-only BreakCycle. Focus persistence, monotonic timing, checkpoint recovery and blocker lifecycle remain in the existing engine. Immutable cycle state is added to FocusSessionSnapshot; breaks never create study ledger rows. StudyNotifications is an application port; JavaFxStudyNotifications queues nonmodal popups on FX and optional audio on a dedicated worker. AppShell owns and closes the adapter. See [M5 behavior/evidence](break-cycles-m5.md). M4 native adapters and controllers are included as authorized prerequisites; the actual UML shows them. Historical sections below describe earlier scope.
+
+## Prior M3 organization amendment
 
 StudyOrganizationService coordinates the existing ClassroomCatalog, FocusWorkspaceStore, StudyPlanStore, UserProfileStore, StudySessionLedger and BlockedApplicationCatalog ports. ClassroomController now edits resources, notes/color and tasks and displays subject history. WorkspaceController and GoalController implement the existing domains without replacement abstractions. StudyEditorActions shares the FX/background handoff; StudyApplicationLauncher opens explicitly chosen study shortcuts without a shell or elevation. Schema 4 and JSON format 3 add metadata with legacy defaults. See [current M3 contract and evidence](organization-m3.md). Historical sections below retain the original planned scope; current implementation is shown by the actual UML.
 

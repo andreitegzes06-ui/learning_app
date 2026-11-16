@@ -17,7 +17,7 @@ public final class SqliteStudyDataArchive implements StudyDataArchive {
     public SqliteStudyDataArchive(SqliteDatabase database, Clock clock) { this.database = database; this.clock = clock; }
     @Override public StudyDataSnapshot snapshot() { return database.transaction("read a consistent study backup", this::read); }
     private StudyDataSnapshot read(Connection c) throws SQLException {
-        return new StudyDataSnapshot(3, clock.instant(), SqliteUserProfileStore.readAll(c), SqliteStudySessionLedger.readAll(c),
+        return new StudyDataSnapshot(4, clock.instant(), SqliteUserProfileStore.readAll(c), SqliteStudySessionLedger.readAll(c),
                 SqliteClassroomCatalog.readAll(c), SqliteBlockedApplicationCatalog.readAll(c).stream().map(StudyDataSnapshot.ApplicationSelection::from).toList(),
                 SqliteFocusWorkspaceStore.readAll(c).stream().map(StudyDataSnapshot.WorkspaceSelection::from).toList(),
                 SqliteStudyPlanStore.readGoals(c), SqliteStudyPlanStore.readTasks(c), SqliteAchievementStore.readDefinitions(c), SqliteAchievementStore.readAwards(c));

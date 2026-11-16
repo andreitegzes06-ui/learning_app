@@ -104,7 +104,7 @@ class StudyDataPersistenceTest {
         assertEquals(profile, new SqliteUserProfileStore(db).findLocalProfile().orElseThrow());
         assertEquals(session, new SqliteStudySessionLedger(db).find(session.id()).orElseThrow());
         assertTrue(new SqliteClassroomCatalog(db).findAll().isEmpty());
-        try (var c = db.open(); var s = c.createStatement(); var rows = s.executeQuery("SELECT count(*) FROM schema_version")) { rows.next(); assertEquals(4, rows.getInt(1)); }
+        try (var c = db.open(); var s = c.createStatement(); var rows = s.executeQuery("SELECT count(*) FROM schema_version")) { rows.next(); assertEquals(5, rows.getInt(1)); }
     }
     @Test void failedV2MigrationRollsBackAndLeavesV1Untouched() throws Exception {
         var db = database();

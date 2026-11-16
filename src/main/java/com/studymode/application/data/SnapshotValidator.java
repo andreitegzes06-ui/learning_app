@@ -9,7 +9,7 @@ import java.util.function.Function;
 public final class SnapshotValidator {
     public void validate(StudyDataSnapshot data) {
         try {
-            if (data.formatVersion() < 1 || data.formatVersion() > 3) reject("Unsupported JSON format version: " + data.formatVersion());
+            if (data.formatVersion() < 1 || data.formatVersion() > 4) reject("Unsupported JSON format version: " + data.formatVersion());
             if (data.recordCount() > 100_000) reject("Import exceeds the 100,000-record limit.");
             if (data.profiles().size() > 1) reject("Only one local profile is supported per data directory.");
             Set<UUID> profiles = unique(data.profiles(), p -> p.id(), "profile");

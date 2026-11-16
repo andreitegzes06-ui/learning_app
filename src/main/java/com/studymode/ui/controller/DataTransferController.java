@@ -18,10 +18,15 @@ public final class DataTransferController {
     private final ExecutorService io;
     private final Consumer<StudyDataSnapshot> onImport;
     private final Consumer<Boolean> busy;
+    private final Runnable beforeImport;
     private final Label feedback = text("", "feedback");
     private final VBox view;
     public DataTransferController(StudyDataTransfer transfer, ExecutorService io, Consumer<StudyDataSnapshot> onImport, Consumer<Boolean> busy) {
+        this(transfer,io,onImport,busy,() -> { });
+    }
+    public DataTransferController(StudyDataTransfer transfer, ExecutorService io, Consumer<StudyDataSnapshot> onImport, Consumer<Boolean> busy, Runnable beforeImport) {
         this.transfer = transfer; this.io = io; this.onImport = onImport; this.busy = busy;
+        this.beforeImport=beforeImport;
         Button export = new Button("Export study data…"); export.setId("export-study-data");
         Button importData = new Button("Import study data…"); importData.setId("import-study-data");
         export.setOnAction(event -> {
@@ -66,7 +71,7 @@ public final class DataTransferController {
     private void replace(StudyDataSnapshot preview) {
         busy.accept(true); feedback.setText("Backing up and importing…");
         io.execute(() -> {
-            try { Path backup = transfer.importSnapshot(preview); Platform.runLater(() -> { busy.accept(false); onImport.accept(preview); feedback.setText("Import completed. Previous data backup: " + backup); }); }
+            try { beforeImport.run(); Path backup = transfer.importSnapshot(preview); Platform.runLater(() -> { busy.accept(false); onImport.accept(preview); feedback.setText("Import completed. Previous data backup: " + backup); }); }
             catch (IOException | DataImportException | StudyDataException | SecurityException e) { complete("Import failed: " + e.getMessage()); }
         });
     }

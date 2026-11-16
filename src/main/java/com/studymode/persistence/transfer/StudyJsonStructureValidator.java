@@ -52,6 +52,7 @@ final class StudyJsonStructureValidator {
                 Map<String, RecordComponent> components = new LinkedHashMap<>();
                 for (RecordComponent component : record.getRecordComponents()) {
                     if (format == 1 && record == StudySession.class && Set.of("context", "checkpointAt").contains(component.getName())) continue;
+                    if (format < 4 && record == StudyDataSnapshot.ApplicationSelection.class && component.getName().equals("enabled")) continue;
                     if (format < 3 && ((record == Classroom.class && Set.of("color","notes").contains(component.getName())) || (record == com.studymode.domain.planning.StudyGoal.class && component.getName().equals("classroomId")) || (record == StudyDataSnapshot.WorkspaceSelection.class && component.getName().equals("shortcuts")))) continue;
                     components.put(component.getName(), component);
                 }

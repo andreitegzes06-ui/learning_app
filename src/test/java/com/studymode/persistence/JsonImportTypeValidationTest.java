@@ -156,7 +156,7 @@ class JsonImportTypeValidationTest {
     }
     private JsonNode withOptionalValues() {
         JsonNode full = exported.deepCopy();
-        ((ArrayNode)full.at("/workspaces/0/shortcuts")).addObject().put("displayName","Study editor").put("executablePath",root.resolve("editor.exe").toString());
+        ((ArrayNode)full.at("/workspaces/0/shortcuts")).addObject().put("displayName","Study editor").put("executablePath",root.resolve("editor.exe").toString()).put("enabled",true);
         ((ObjectNode) full.at("/tasks/0")).put("completedAt", StudyDataFixture.NOW.toString());
         ((ObjectNode) full.at("/goals/0")).put("classroomId", full.at("/classrooms/0/id").textValue());
         ObjectNode context = (ObjectNode) full.at("/sessions/0/context");

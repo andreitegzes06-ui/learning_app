@@ -32,7 +32,7 @@ class StartupConfigurationTest {
         assertEquals(1500, config.windowWidth()); assertEquals(720, config.windowHeight()); assertEquals("statistics", config.startPage());
     }
     @Test void rejectsUnknownDuplicateInvalidAndUnsafeStartupOptions() {
-        for (String option : List.of("--unknown=x", "--blocker=windows", "--window-width=abc", "--window-width=800", "--start-page=missing", "--data-dir=relative", "--config=relative", "--config=", "--window-height=9999999999999999999")) {
+        for (String option : List.of("--unknown=x", "--blocker=unknown", "--window-width=abc", "--window-width=800", "--start-page=missing", "--data-dir=relative", "--config=relative", "--config=", "--window-height=9999999999999999999")) {
             assertThrows(IllegalArgumentException.class, () -> loader.load(List.of("--data-dir=" + root, option), Map.of()), option);
         }
         assertThrows(IllegalArgumentException.class, () -> loader.load(List.of("--data-dir=" + root, "--data-dir=" + root), Map.of()));

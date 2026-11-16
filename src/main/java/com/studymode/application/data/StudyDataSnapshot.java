@@ -21,9 +21,10 @@ public record StudyDataSnapshot(int formatVersion, Instant exportedAt, List<User
         applications = List.copyOf(applications); workspaces = List.copyOf(workspaces); goals = List.copyOf(goals);
         tasks = List.copyOf(tasks); achievements = List.copyOf(achievements); awards = List.copyOf(awards);
     }
-    public record ApplicationSelection(String displayName, String executablePath) {
-        public BlockedApplication toModel() { return new BlockedApplication(displayName, Path.of(executablePath)); }
-        public static ApplicationSelection from(BlockedApplication app) { return new ApplicationSelection(app.displayName(), app.executablePath().toString()); }
+    public record ApplicationSelection(String displayName, String executablePath, boolean enabled) {
+        public ApplicationSelection(String displayName,String executablePath) { this(displayName,executablePath,true); }
+        public BlockedApplication toModel() { return new BlockedApplication(displayName, Path.of(executablePath),enabled); }
+        public static ApplicationSelection from(BlockedApplication app) { return new ApplicationSelection(app.displayName(), app.executablePath().toString(),app.enabled()); }
     }
     public record WorkspaceSelection(UUID id, String name, UUID classroomId, FocusPreferences preferences,
                                      List<UUID> resourceIds, List<String> blockedPaths, List<ApplicationSelection> shortcuts) {

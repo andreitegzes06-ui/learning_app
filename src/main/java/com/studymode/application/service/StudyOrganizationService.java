@@ -56,8 +56,11 @@ public final class StudyOrganizationService {
     }
     public void deleteWorkspace(UUID id) { requireWorkspace(id); workspaces.delete(id); }
     public com.studymode.application.data.FocusSessionSnapshot startWorkspace(UUID id, UUID goalId, FocusSessionService focus) {
+        return startWorkspace(id,goalId,focus,false);
+    }
+    public com.studymode.application.data.FocusSessionSnapshot startWorkspace(UUID id, UUID goalId, FocusSessionService focus,boolean authorized) {
         var workspace=requireWorkspace(id); workspace.validateAgainst(requireClassroom(workspace.classroomId()));
-        return focus.start(workspace.preferences().focusMinutes()*60L,workspace.classroomId(),goalId);
+        return focus.startWorkspace(workspace,goalId,authorized);
     }
     public void saveGoal(StudyGoal value, boolean creating) {
         if (!value.profileId().equals(profile().id())) throw new IllegalArgumentException("The goal must belong to your profile.");

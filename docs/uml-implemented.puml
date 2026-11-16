@@ -1,5 +1,6 @@
 @startuml
-title Study Mode - implemented classrooms, workspaces and goals (15 November 2026)
+!pragma layout smetana
+title Study Mode - implemented focus/break cycles and notifications (M5, 16 November 2026)
 hide empty members
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
@@ -415,6 +416,76 @@ StudyModeApplication ..> StudyOrganizationService : constructs
 note bottom of StudyModeApplication
   Domain models have no JavaFX/JDBC dependencies.
   I/O is serialized off the FX application thread.
-  Native Windows blocking, automatic breaks and rewards are absent.
+  Windows graceful-close monitoring and break cycles are implemented.
+  Rewards remain future work.
 end note
+
+package "M4 Windows blocking integration" {
+  class BlockedApplicationService
+  class FocusBlockingService
+  class BlockedApplicationsController
+  interface WindowsProcessGateway
+  class WindowsProcessIdentity <<record>>
+  class WindowsProcessSafetyPolicy
+  class WindowsDistractionBlocker
+  class JnaWindowsProcessGateway
+  interface CriticalProcessQuery <<nested native mapping>>
+  interface WindowCloseDispatch <<nested native mapping>>
+  class TokenIdentity <<nested record>>
+}
+DistractionBlocker <|.. WindowsDistractionBlocker
+WindowsProcessGateway <|.. JnaWindowsProcessGateway
+WindowsDistractionBlocker --> WindowsProcessGateway
+WindowsDistractionBlocker --> WindowsProcessSafetyPolicy
+WindowsProcessGateway ..> WindowsProcessIdentity
+JnaWindowsProcessGateway +-- CriticalProcessQuery
+JnaWindowsProcessGateway +-- WindowCloseDispatch
+JnaWindowsProcessGateway +-- TokenIdentity
+FocusSessionService --> FocusBlockingService
+FocusBlockingService --> DistractionBlocker
+FocusBlockingService --> BlockedApplicationCatalog
+BlockedApplicationService --> BlockedApplicationCatalog
+BlockedApplicationService --> DistractionBlocker
+BlockedApplicationsController --> BlockedApplicationService
+BlockedApplicationsController --> StudyOrganizationService
+BlockedApplicationsController --> DistractionBlocker
+AppShell --> BlockedApplicationsController
+StudyModeApplication ..> WindowsDistractionBlocker
+StudyModeApplication ..> FocusBlockingService
+
+package "M5 cycles and notifications" {
+  class BreakCycle {
+    configure(preferences, automatic)
+    beginFocus(scope)
+    focusCompleted(now)
+    start(now)
+    tick(now) : boolean
+    pause(now) : boolean
+    resume(now)
+    skip()
+    cancel()
+    snapshot() : Snapshot
+  }
+  enum "BreakCycle.Phase" as BreakPhase
+  class "BreakCycle.Snapshot" as BreakSnapshot <<nested record>>
+  interface StudyNotifications {
+    publish(event, detail, sound)
+  }
+  enum "StudyNotifications.Event" as NotificationEvent
+  class JavaFxStudyNotifications {
+    publish(event, detail, sound)
+    close()
+  }
+}
+BreakCycle +-- BreakPhase
+BreakCycle +-- BreakSnapshot
+BreakCycle --> FocusPreferences
+BreakSnapshot ..> BreakPhase
+FocusSessionService *-- BreakCycle
+FocusSessionService --> StudyNotifications
+FocusSessionSnapshot o-- BreakSnapshot
+StudyNotifications +-- NotificationEvent
+StudyNotifications <|.. JavaFxStudyNotifications
+AppShell *-- JavaFxStudyNotifications
+JavaFxStudyNotifications ..> NotificationEvent
 @enduml

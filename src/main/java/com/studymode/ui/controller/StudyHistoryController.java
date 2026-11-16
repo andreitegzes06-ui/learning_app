@@ -51,7 +51,7 @@ public final class StudyHistoryController {
         table.getColumns().add(outcome); table.getColumns().add(mode); table.getColumns().add(goal);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         reload.setOnAction(event -> refresh());
-        view = new VBox(18, card(text("Your recorded sessions", "section-title"),text("Only actual focused seconds are recorded. Dates use the session’s captured study zone.","muted"), table, reload, feedback));
+        view = new VBox(18, card(text("Your recorded sessions", "section-title"),text("Focus history only: actual focused seconds. Breaks, pauses and time after interruption are excluded. Dates use the session’s captured study zone.","muted"), table, reload, feedback));
     }
     public VBox view() { return view; }
     public void refresh() {

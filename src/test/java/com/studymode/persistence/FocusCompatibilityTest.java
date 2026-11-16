@@ -18,12 +18,14 @@ class FocusCompatibilityTest {
         var archive=new SqliteStudyDataArchive(db,StudyDataFixture.CLOCK); var transfer=new JsonStudyDataTransfer(archive,root.resolve("data"));
         Path file=root.resolve("legacy.json"); transfer.exportTo(file); var json=new ObjectMapper(); ObjectNode document=(ObjectNode)json.readTree(file.toFile());
         document.put("formatVersion",1);
+        for(var app:document.get("applications")) ((com.fasterxml.jackson.databind.node.ObjectNode)app).remove("enabled");
+        for(var workspace:document.get("workspaces")) for(var app:workspace.get("shortcuts")) ((com.fasterxml.jackson.databind.node.ObjectNode)app).remove("enabled");
         for(JsonNode c:document.get("classrooms")) { ((ObjectNode)c).remove("color"); ((ObjectNode)c).remove("notes"); }
         for(JsonNode g:document.get("goals")) ((ObjectNode)g).remove("classroomId");
         for(JsonNode w:document.get("workspaces")) ((ObjectNode)w).remove("shortcuts");
         for (JsonNode session:document.get("sessions")) { ((ObjectNode)session).remove("context"); ((ObjectNode)session).remove("checkpointAt"); }
         json.writeValue(file.toFile(),document);
-        var imported=transfer.inspectImport(file); assertEquals(3,imported.formatVersion()); assertEquals(0,imported.sessions().getFirst().context().plannedFocusSeconds());
+        var imported=transfer.inspectImport(file); assertEquals(4,imported.formatVersion()); assertEquals(0,imported.sessions().getFirst().context().plannedFocusSeconds());
         transfer.importSnapshot(imported); assertEquals(original,archive.snapshot());
         ((ObjectNode)document.at("/profiles/0")).put("displayName",123); json.writeValue(file.toFile(),document);
         assertThrows(DataImportException.class,() -> transfer.inspectImport(file)); assertEquals(original,archive.snapshot());

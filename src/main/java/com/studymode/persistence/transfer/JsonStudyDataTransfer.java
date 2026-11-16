@@ -79,7 +79,11 @@ public final class JsonStudyDataTransfer implements StudyDataTransfer {
                 }
                 for (JsonNode goal : document.get("goals")) ((com.fasterxml.jackson.databind.node.ObjectNode) goal).putNull("classroomId");
                 for (JsonNode workspace : document.get("workspaces")) ((com.fasterxml.jackson.databind.node.ObjectNode) workspace).putArray("shortcuts");
-                ((com.fasterxml.jackson.databind.node.ObjectNode) document).put("formatVersion", 3);
+            }
+            if (document.get("formatVersion").intValue() >= 1 && document.get("formatVersion").intValue() <= 3) {
+                for (JsonNode app:document.get("applications")) ((com.fasterxml.jackson.databind.node.ObjectNode)app).put("enabled",true);
+                for (JsonNode workspace:document.get("workspaces")) for(JsonNode app:workspace.get("shortcuts")) ((com.fasterxml.jackson.databind.node.ObjectNode)app).put("enabled",true);
+                ((com.fasterxml.jackson.databind.node.ObjectNode) document).put("formatVersion",4);
             }
             StudyDataSnapshot snapshot = mapper.treeToValue(document, StudyDataSnapshot.class);
             validator.validate(snapshot); return snapshot;

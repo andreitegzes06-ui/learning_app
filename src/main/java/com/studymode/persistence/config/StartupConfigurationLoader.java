@@ -82,13 +82,13 @@ public final class StartupConfigurationLoader {
     private StartupConfiguration validate(Path root, Properties properties) {
         String page = properties.getProperty("start-page");
         if (!PAGES.contains(page)) throw new IllegalArgumentException("Unknown start-page: " + page);
-        if (!"simulated".equals(properties.getProperty("blocker"))) throw new IllegalArgumentException("Only blocker=simulated is available in milestone 1. Windows enforcement is planned for M5.");
+        if (!Set.of("simulated","windows-dry-run","windows").contains(properties.getProperty("blocker"))) throw new IllegalArgumentException("Use blocker=simulated, windows-dry-run or windows.");
         try {
             int width = Validation.range(Integer.parseInt(properties.getProperty("window-width")), 900, 3840, "Window width");
             int height = Validation.range(Integer.parseInt(properties.getProperty("window-height")), 640, 2160, "Window height");
             String demo = properties.getProperty("demo");
             if (!Set.of("true", "false").contains(demo)) throw new IllegalArgumentException("demo must be exactly true or false.");
-            return new StartupConfiguration(root, page, width, height, Boolean.parseBoolean(demo));
+            return new StartupConfiguration(root, page, width, height, Boolean.parseBoolean(demo),properties.getProperty("blocker"));
         } catch (NumberFormatException e) { throw new IllegalArgumentException("Window width and height must be whole numbers.", e); }
     }
     private Path absolutePath(String value) {

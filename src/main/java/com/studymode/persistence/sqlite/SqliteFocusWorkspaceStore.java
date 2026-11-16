@@ -21,7 +21,7 @@ public final class SqliteFocusWorkspaceStore implements FocusWorkspaceStore {
             var apps = query(c, """
                     SELECT a.* FROM blocked_application a JOIN workspace_application w ON a.path_key=w.path_key
                     WHERE w.workspace_id=? ORDER BY a.path_key
-                    """, r -> new BlockedApplication(r.getString("display_name"), Path.of(r.getString("executable_path"))), id);
+                    """, r -> new BlockedApplication(r.getString("display_name"), Path.of(r.getString("executable_path")),r.getInt("enabled")==1), id);
             var shortcuts = query(c, "SELECT * FROM workspace_shortcut WHERE workspace_id=? ORDER BY path_key",
                     r -> new BlockedApplication(r.getString("display_name"), Path.of(r.getString("executable_path"))), id);
             return new FocusWorkspace(id, row.getString("name"), UUID.fromString(row.getString("classroom_id")),
