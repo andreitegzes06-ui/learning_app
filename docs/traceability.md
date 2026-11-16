@@ -1,5 +1,7 @@
 # Requirements-to-implementation checklist
 
+Week 8 examination preparation: see [final rubric audit](WEEK8_FINAL_AUDIT.md), [presentation notes](WEEK8_PRESENTATION_NOTES.md), and [readable grading UML](WEEK8_UML.png). The in-class presentation remains pending. This preparation does not authorize or implement M6.
+
 ## Current M5 acceptance — 16 November 2026
 
 - [x] A: custom focus/short/long durations, two Pomodoro-style presets, configurable long-break cadence, automatic/manual breaks, pause/resume/skip, monotonic accuracy and excluded break time.

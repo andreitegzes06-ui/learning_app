@@ -4,6 +4,8 @@ Java 21 / JavaFX Windows desktop application with SQLite persistence. **Mileston
 
 Classrooms include editable color, notes, educational links and task checklists, with subject-specific history/time. Workspaces save classroom, focus/break defaults, selected links, blocklist and study application shortcuts; Start configures the existing real timer. Goals support daily/weekly targets, optional classroom assignment and real linked-session progress. See [M5 behavior and verification](docs/break-cycles-m5.md) and the prior [organization guide](docs/organization-m3.md).
 
+Week 8 grading materials: [final audit](docs/WEEK8_FINAL_AUDIT.md), [presentation notes](docs/WEEK8_PRESENTATION_NOTES.md), [UML PNG](docs/WEEK8_UML.png) and [UML PDF](output/pdf/WEEK8_UML.pdf).
+
 ## Build and launch
 
 From this directory in PowerShell:

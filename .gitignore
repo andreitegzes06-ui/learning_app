@@ -11,3 +11,22 @@
 /settings.properties
 /exports/
 /.mvn/wrapper/maven-wrapper.jar
+
+# Local secrets, alternate SQLite filenames, diagnostics and temporary exports.
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.class
+*.hprof
+*.jfr
+*.pem
+*.p12
+*.pfx
+/backups/
+/tmp/

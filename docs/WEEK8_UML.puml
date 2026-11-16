@@ -1,0 +1,118 @@
+@startuml
+!pragma layout smetana
+title Study Mode | Week 8 grading view\nActual implementation through M5 - selected classes, not the full architecture
+top to bottom direction
+skinparam classAttributeIconSize 0
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 16
+skinparam classFontSize 16
+skinparam ArrowFontSize 13
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam dpi 180
+skinparam backgroundColor #FFFFFF
+skinparam classBackgroundColor #F1F5FC
+skinparam classBorderColor #344A70
+skinparam ArrowColor #344A70
+hide empty members
+
+package "Focus workflow and durable storage" {
+  class FocusSessionService {
+    - ledger : StudySessionLedger
+    - profiles : UserProfileStore
+    - current : StudySession
+    - cycle : BreakCycle
+    + start(seconds, classroomId, goalId) : FocusSessionSnapshot
+    + pause() : FocusSessionSnapshot
+    + resume() : FocusSessionSnapshot
+    + finish() : FocusSessionSnapshot
+    + interrupt() : FocusSessionSnapshot
+    + recoverUnfinished() : int
+  }
+  interface StudySessionLedger {
+    + save(session : StudySession)
+    + findByPeriod(from, to) : List<StudySession>
+    + findUnfinished() : List<StudySession>
+  }
+  interface UserProfileStore {
+    + findLocalProfile() : Optional<UserProfile>
+    + save(profile : UserProfile)
+  }
+  class SqliteStudySessionLedger {
+    - database : SqliteDatabase
+    + save(session : StudySession)
+    + findByPeriod(from, to) : List<StudySession>
+  }
+  class SqliteUserProfileStore {
+    - database : SqliteDatabase
+    + findLocalProfile() : Optional<UserProfile>
+    + save(profile : UserProfile)
+  }
+  class SqliteDatabase {
+    - file : Path
+    + open() : Connection
+    + transaction(operation, work) : T
+  }
+  class StudySession <<record>> {
+    + id : UUID
+    + profileId : UUID
+    + activeFocusSeconds : long
+    + status : SessionStatus
+    + finished() : boolean
+  }
+  class UserProfile <<record>> {
+    + id : UUID
+    + displayName : String
+    + studyZone : ZoneId
+    + withDetails(name, zone) : UserProfile
+  }
+  FocusSessionService --> StudySessionLedger : injected port
+  FocusSessionService --> UserProfileStore : injected port
+  FocusSessionService --> StudySession : current
+  StudySessionLedger <|.. SqliteStudySessionLedger
+  UserProfileStore <|.. SqliteUserProfileStore
+  SqliteStudySessionLedger --> SqliteDatabase
+  SqliteUserProfileStore --> SqliteDatabase
+  StudySession ..> UserProfile : profileId references id
+}
+
+package "Workspace model - two genuine collection types" {
+  class Classroom <<record>> {
+    + id : UUID
+    + name : String
+    + resources : List<StudyResource>
+  }
+  class StudyResource <<record>> {
+    + id : UUID
+    + title : String
+    + uri : URI
+    + fromUrl(id, title, url) : StudyResource
+  }
+  class FocusWorkspace <<record>> {
+    + classroomId : UUID
+    + resourceIds : Set<UUID>
+    + blocklist : Set<BlockedApplication>
+    + preferences : FocusPreferences
+    + validateAgainst(classroom)
+  }
+  class BlockedApplication {
+    - executablePath : Path
+    - enabled : boolean
+    + equals(other) : boolean
+    + hashCode() : int
+  }
+  Classroom "1" o-- "0..*" StudyResource : resources: ordered List
+  FocusWorkspace ..> Classroom : classroomId references id
+  FocusWorkspace "0..*" o-- "0..*" BlockedApplication : blocklist: unique Set
+  Classroom -[hidden]right- FocusWorkspace
+}
+
+SqliteDatabase -[hidden]down- Classroom
+legend bottom
+  Solid arrow: held reference. Dashed triangle: implements interface.
+  Open diamond: collection membership. Dotted arrow: UUID reference.
+  List preserves resource order; Set deduplicates executable selections.
+  Record entries show generated public accessors for actual components.
+  Other dependencies/members omitted for legibility. Full view: docs/uml-implemented.puml.
+endlegend
+@enduml

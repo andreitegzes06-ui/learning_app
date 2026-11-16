@@ -4,6 +4,9 @@ Milestone 5 break cycles and notifications, 16 November 2026. The initial planni
 
 | Document | Purpose |
 | --- | --- |
+| [Week 8 final audit](WEEK8_FINAL_AUDIT.md) | Rubric statuses, exact source/test evidence and final verification |
+| [Week 8 presentation notes](WEEK8_PRESENTATION_NOTES.md) | Rehearsal script and honest limits; presentation itself remains pending |
+| [Week 8 UML](WEEK8_UML.png) / [PDF](../output/pdf/WEEK8_UML.pdf) / [source](WEEK8_UML.puml) | Readable actual-code grading view |
 | [Requirements and inspection](requirements.md) | Supplied baseline, repository findings, assumptions, conflicts, and risks |
 | [Architecture](architecture.md) | Packages, domain entities, services, UI, validation, and dependencies |
 | [Persistence and Windows](persistence-and-windows.md) | Schema, files, recovery, export/import, and process safety |
